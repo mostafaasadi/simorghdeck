@@ -1,6 +1,7 @@
 let chart = null;
 let snrPoints = [];
 const MAX_POINTS = 900;
+let lastStatsNow = null;
 let activeInfoTip = null;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -31,7 +32,7 @@ async function refresh() {
         renderService(data.service);
         renderReceiver(data.receiver);
         renderAircraft(data.aircraft || {});
-        updateChart(data.receiver ? data.receiver.snr_db : null);
+        updateChart(data.receiver ? data.receiver.snr_db_1m : null, data.receiver ? data.receiver.stats_now : null);
     } catch (error) {
         console.error(error);
     }
@@ -103,7 +104,7 @@ function initChart() {
     });
 }
 
-function updateChart(snr) {
+function updateChart(snr, statsNow) {
     const empty = document.getElementById('chartEmpty');
 
     if (!chart) {
@@ -113,7 +114,7 @@ function updateChart(snr) {
         return;
     }
 
-    if (isNumber(snr)) {
+    if (isNumber(snr) && statsNow !== lastStatsNow) {
         const now = new Date();
 
         snrPoints.push({
@@ -131,6 +132,8 @@ function updateChart(snr) {
 
         chart.data.datasets[0].data = snrPoints.map(point => point.y);
         chart.update('none');
+
+        lastStatsNow = statsNow;
     }
 
     if (empty) {
@@ -174,31 +177,74 @@ function renderReceiver(receiver) {
 
     setText('gainDb', formatValue(receiver.gain_db, 'dB'));
     setText('ppmValue', formatValue(receiver.estimated_ppm, 'ppm'));
-    setText('snrMetric', formatValue(receiver.snr_db, 'dB'));
-    setSnrColor('snrMetric', receiver.snr_db);
+    setText('snrMetric', formatValue(receiver.snr_db_1m, 'dB'));
+    setSnrColor('snrMetric', receiver.snr_db_1m, receiver.messages_1m);
 
     setText('withPos', isNumber(receiver.aircraft_with_pos) ? String(receiver.aircraft_with_pos) : 'N/A');
-    setText('withoutPos', isNumber(receiver.aircraft_without_pos) ? String(receiver.aircraft_without_pos) : 'N/A');
 
-    setText('snrCurrent', formatValue(receiver.snr_db, 'dB'));
-    setText('signalCurrent', formatValue(receiver.signal_db, 'dB'));
-    setText('noiseCurrent', formatValue(receiver.noise_db, 'dB'));
+    setText('snrCurrent', formatValue(receiver.snr_db_1m, 'dB'));
+    setText('signalCurrent', formatValue(receiver.signal_db_1m, 'dB'));
+    setText('noiseCurrent', formatValue(receiver.noise_db_1m, 'dB'));
 
-    setText('messages1m', formatInteger(receiver.messages_1m));
-    setText('positions1m', formatInteger(receiver.positions_1m));
-    setText('maxRange', formatValue(receiver.max_distance_km, 'km'));
-    setText('uptime', formatDuration(receiver.uptime_seconds));
+    setText('duration', formatDuration(receiver.uptime_seconds));
+    setText('totalMessages', formatInteger(receiver.messages_total));
+    setText('messagesPerHour', formatValue(receiver.messages_per_hour, '/h'));
+    setText('totalPositions', formatInteger(receiver.positions_total));
+    setText('positionsPerHour', formatValue(receiver.positions_per_hour, '/h'));
+    setText('positionYield', formatValue(receiver.position_yield, '%'));
+    setText('tracksAll', formatInteger(receiver.tracks_all));
+    setText('tracksMulti', formatInteger(receiver.tracks_multi));
+    setText('trackCompletion', formatValue(receiver.track_completion, '%'));
+
+    if (isNumber(receiver.max_distance_km)) {
+        if (receiver.max_distance_km > 0) {
+            setText('maxRange', formatValue(receiver.max_distance_km, 'km'));
+        } else if (receiver.positions_total > 0) {
+            setText('maxRange', 'Unavailable');
+        } else {
+            setText('maxRange', 'No positions yet');
+        }
+    } else {
+        setText('maxRange', 'N/A');
+    }
+
+    setText('peakSignal', formatValue(receiver.peak_signal, 'dBFS'));
+    setText('sessionSnr', formatValue(receiver.snr_db, 'dB'));
 
     setAlertCount('samplesDropped', receiver.samples_dropped);
     setAlertCount('samplesLost', receiver.samples_lost);
+    setText('strongSignals', formatInteger(receiver.strong_signals));
+
+    setText('lastTraffic', getLastTrafficStatus(receiver));
+}
+
+function getLastTrafficStatus(receiver) {
+    if (receiver.messages_1m > 0) {
+        return 'Now';
+    }
+    if (receiver.messages_5m > 0) {
+        return '< 5 min';
+    }
+    if (receiver.messages_15m > 0) {
+        return '< 15 min';
+    }
+    if (receiver.messages_total > 0) {
+        return 'Earlier';
+    }
+    return 'None';
 }
 
 function renderAircraft(aircraft) {
     const list = document.getElementById('aircraftList');
-    const count = document.getElementById('activeCount');
+    const count = document.getElementById('aircraftCount');
+    const activeCount = document.getElementById('activeCount');
 
     if (count) {
         count.textContent = String(aircraft.active_count || 0);
+    }
+
+    if (activeCount) {
+        activeCount.textContent = String(aircraft.active_count || 0);
     }
 
     if (!list) {
@@ -443,7 +489,7 @@ function formatDuration(seconds) {
     return `${m}m ${s}s`;
 }
 
-function setSnrColor(id, value) {
+function setSnrColor(id, value, messages) {
     const el = document.getElementById(id);
 
     if (!el) {
@@ -453,6 +499,10 @@ function setSnrColor(id, value) {
     el.classList.remove('text-success', 'text-warning', 'text-danger');
 
     if (!isNumber(value)) {
+        return;
+    }
+
+    if (!isNumber(messages) || messages === 0) {
         return;
     }
 

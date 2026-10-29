@@ -194,18 +194,41 @@ def parse_receiver():
     status = load_runtime_json("status.json")
 
     last1 = stats.get("last1min", {}) if isinstance(stats.get("last1min"), dict) else {}
-    local = last1.get("local", {}) if isinstance(last1.get("local"), dict) else {}
+    last5 = stats.get("last5min", {}) if isinstance(stats.get("last5min"), dict) else {}
+    last15 = stats.get("last15min", {}) if isinstance(stats.get("last15min"), dict) else {}
     total = stats.get("total", {}) if isinstance(stats.get("total"), dict) else {}
-    tracks = last1.get("tracks", {}) if isinstance(last1.get("tracks"), dict) else {}
+    local_total = total.get("local", {}) if isinstance(total.get("local"), dict) else {}
+    tracks = total.get("tracks", {}) if isinstance(total.get("tracks"), dict) else {}
 
-    signal = to_number(local.get("signal"))
-    noise = to_number(local.get("noise"))
-    snr = round(signal - noise, 1) if signal is not None and noise is not None else None
+    signal_1m = to_number(last1.get("local", {}).get("signal"))
+    noise_1m = to_number(last1.get("local", {}).get("noise"))
+    snr_1m = round(signal_1m - noise_1m, 1) if signal_1m is not None and noise_1m is not None else None
+
+    signal_total = to_number(local_total.get("signal"))
+    noise_total = to_number(local_total.get("noise"))
+    snr_total = round(signal_total - noise_total, 1) if signal_total is not None and noise_total is not None else None
 
     max_distance = to_number(total.get("max_distance"))
     max_distance_km = round(max_distance / 1000.0, 1) if max_distance is not None else None
 
-    uptime = to_number(status.get("uptime"), to_number(stats.get("uptime")))
+    position_count_total = to_int(total.get("position_count_total"), 0)
+    messages_valid = to_int(total.get("messages_valid"), 0)
+
+    uptime = to_number(status.get("uptime"))
+    if uptime is None:
+        start = to_number(total.get("start"))
+        end = to_number(total.get("end"))
+        if start is not None and end is not None:
+            uptime = end - start
+
+    messages_per_hour = round(messages_valid / uptime * 3600, 1) if uptime and uptime > 0 else None
+    positions_per_hour = round(position_count_total / uptime * 3600, 1) if uptime and uptime > 0 else None
+    position_yield = round(position_count_total / messages_valid * 100, 1) if messages_valid > 0 else None
+
+    tracks_all = to_int(tracks.get("all"), 0)
+    tracks_single = to_int(tracks.get("single_message"), 0)
+    tracks_multi = tracks_all - tracks_single
+    track_completion = round(tracks_multi / tracks_all * 100, 1) if tracks_all > 0 else None
 
     with_pos = to_int(
         status.get("aircraft_with_pos"),
@@ -223,15 +246,32 @@ def parse_receiver():
         "estimated_ppm": to_number(stats.get("estimated_ppm")),
         "aircraft_with_pos": with_pos,
         "aircraft_without_pos": without_pos,
-        "signal_db": signal,
-        "noise_db": noise,
-        "snr_db": snr,
-        "messages_1m": to_int(last1.get("messages_valid"), 0),
-        "positions_1m": to_int(last1.get("position_count_total"), 0),
+        "signal_db_1m": signal_1m,
+        "noise_db_1m": noise_1m,
+        "snr_db_1m": snr_1m,
+        "signal_db": signal_total,
+        "noise_db": noise_total,
+        "snr_db": snr_total,
+        "messages_total": messages_valid,
+        "positions_total": position_count_total,
+        "messages_per_hour": messages_per_hour,
+        "positions_per_hour": positions_per_hour,
+        "position_yield": position_yield,
+        "tracks_all": tracks_all,
+        "tracks_single": tracks_single,
+        "tracks_multi": tracks_multi,
+        "track_completion": track_completion,
         "max_distance_km": max_distance_km,
-        "samples_dropped": to_int(local.get("samples_dropped"), 0),
-        "samples_lost": to_int(local.get("samples_lost"), 0),
-        "tracks_all": to_int(tracks.get("all"), 0)
+        "peak_signal": to_number(local_total.get("peak_signal")),
+        "strong_signals": to_int(local_total.get("strong_signals"), 0),
+        "samples_dropped": to_int(local_total.get("samples_dropped"), 0),
+        "samples_lost": to_int(local_total.get("samples_lost"), 0),
+        "messages_1m": to_int(last1.get("messages_valid"), 0),
+        "messages_5m": to_int(last5.get("messages_valid"), 0),
+        "messages_15m": to_int(last15.get("messages_valid"), 0),
+        "positions_1m": to_int(last1.get("position_count_total"), 0),
+        "positions_5m": to_int(last5.get("position_count_total"), 0),
+        "positions_15m": to_int(last15.get("position_count_total"), 0)
     }
 
 
@@ -254,21 +294,6 @@ def get_panel():
         "receiver": parse_receiver(),
         "aircraft": parse_aircraft()
     }
-
-
-@router.get("/api/system")
-def get_system_status():
-    return {
-        "cpu_usage": psutil.cpu_percent(interval=None),
-        "cpu_temp": get_cpu_temp(),
-        "ram_usage": psutil.virtual_memory().percent,
-        "readsb_active": is_service_active("readsb")
-    }
-
-
-@router.get("/api/aircraft")
-def get_aircraft():
-    return parse_aircraft()
 
 
 @router.post("/api/service/{action}")

@@ -60,92 +60,17 @@
         <section class="metrics-grid">
             <article class="metric-card">
                 <span class="metric-label">
-                    <i data-lucide="cpu"></i>
-                    <span>CPU</span>
-                    <button class="info-tip" type="button" aria-label="CPU information">
+                    <i data-lucide="plane"></i>
+                    <span>Active</span>
+                    <button class="info-tip" type="button" aria-label="Active aircraft information">
                         <i data-lucide="info"></i>
                         <span class="info-fallback">?</span>
                         <span class="tip" role="tooltip">
-                            Processor load of the device running readsb and this panel.
+                            Aircraft seen within the last 60 seconds.
                         </span>
                     </button>
                 </span>
-                <strong id="cpuUsage">N/A</strong>
-            </article>
-
-            <article class="metric-card">
-                <span class="metric-label">
-                    <i data-lucide="thermometer"></i>
-                    <span>Temp</span>
-                    <button class="info-tip" type="button" aria-label="Temperature information">
-                        <i data-lucide="info"></i>
-                        <span class="info-fallback">?</span>
-                        <span class="tip" role="tooltip">
-                            CPU temperature. High temperature can cause throttling and dropped samples.
-                        </span>
-                    </button>
-                </span>
-                <strong id="cpuTemp">N/A</strong>
-            </article>
-
-            <article class="metric-card">
-                <span class="metric-label">
-                    <i data-lucide="server"></i>
-                    <span>RAM</span>
-                    <button class="info-tip" type="button" aria-label="RAM information">
-                        <i data-lucide="info"></i>
-                        <span class="info-fallback">?</span>
-                        <span class="tip" role="tooltip">
-                            Memory usage of the system.
-                        </span>
-                    </button>
-                </span>
-                <strong id="ramUsage">N/A</strong>
-            </article>
-
-            <article class="metric-card">
-                <span class="metric-label">
-                    <i data-lucide="radio"></i>
-                    <span>Gain</span>
-                    <button class="info-tip" type="button" aria-label="Gain information">
-                        <i data-lucide="info"></i>
-                        <span class="info-fallback">?</span>
-                        <span class="tip" role="tooltip">
-                            Receiver gain in dB. Higher gain amplifies weak signals, but too much can raise noise.
-                        </span>
-                    </button>
-                </span>
-                <strong id="gainDb">N/A</strong>
-            </article>
-
-            <article class="metric-card">
-                <span class="metric-label">
-                    <i data-lucide="gauge"></i>
-                    <span>PPM</span>
-                    <button class="info-tip" type="button" aria-label="PPM information">
-                        <i data-lucide="info"></i>
-                        <span class="info-fallback">?</span>
-                        <span class="tip" role="tooltip">
-                            Estimated receiver frequency error in parts per million. High values can indicate drift.
-                        </span>
-                    </button>
-                </span>
-                <strong id="ppmValue">N/A</strong>
-            </article>
-
-            <article class="metric-card">
-                <span class="metric-label">
-                    <i data-lucide="signal"></i>
-                    <span>SNR</span>
-                    <button class="info-tip" type="button" aria-label="SNR information">
-                        <i data-lucide="info"></i>
-                        <span class="info-fallback">?</span>
-                        <span class="tip" role="tooltip">
-                            Signal-to-Noise Ratio in dB. Signal level minus noise level. Higher values usually mean better decoding.
-                        </span>
-                    </button>
-                </span>
-                <strong id="snrMetric">N/A</strong>
+                <strong id="activeCount">0</strong>
             </article>
 
             <article class="metric-card">
@@ -160,22 +85,67 @@
                         </span>
                     </button>
                 </span>
-                <strong id="withPos">N/A</strong>
+                <strong id="withPos">0</strong>
             </article>
 
             <article class="metric-card">
                 <span class="metric-label">
-                    <i data-lucide="plane"></i>
-                    <span>No Pos</span>
-                    <button class="info-tip" type="button" aria-label="Aircraft without position information">
+                    <i data-lucide="signal"></i>
+                    <span>SNR 1m</span>
+                    <button class="info-tip" type="button" aria-label="SNR information">
                         <i data-lucide="info"></i>
                         <span class="info-fallback">?</span>
                         <span class="tip" role="tooltip">
-                            Aircraft heard recently, but no valid position report is available.
+                            Signal-to-Noise Ratio in the last minute. Negative values may indicate no traffic.
                         </span>
                     </button>
                 </span>
-                <strong id="withoutPos">N/A</strong>
+                <strong id="snrMetric">N/A</strong>
+            </article>
+
+            <article class="metric-card">
+                <span class="metric-label">
+                    <i data-lucide="radio"></i>
+                    <span>Gain</span>
+                    <button class="info-tip" type="button" aria-label="Gain information">
+                        <i data-lucide="info"></i>
+                        <span class="info-fallback">?</span>
+                        <span class="tip" role="tooltip">
+                            Receiver gain in dB.
+                        </span>
+                    </button>
+                </span>
+                <strong id="gainDb">N/A</strong>
+            </article>
+
+            <article class="metric-card">
+                <span class="metric-label">
+                    <i data-lucide="gauge"></i>
+                    <span>PPM</span>
+                    <button class="info-tip" type="button" aria-label="PPM information">
+                        <i data-lucide="info"></i>
+                        <span class="info-fallback">?</span>
+                        <span class="tip" role="tooltip">
+                            Estimated receiver frequency error in parts per million.
+                        </span>
+                    </button>
+                </span>
+                <strong id="ppmValue">N/A</strong>
+            </article>
+
+            <article class="metric-card">
+                <span class="metric-label">
+                    <i data-lucide="activity"></i>
+                    <span>Last Traffic</span>
+                    <button class="info-tip" type="button" aria-label="Last traffic information">
+                        <i data-lucide="info"></i>
+                        <span class="info-fallback">?</span>
+                        <span class="tip" role="tooltip">
+                            When messages were last received.
+                        </span>
+                    </button>
+                </span>
+                <strong id="lastTraffic">N/A</strong>
             </article>
         </section>
 
@@ -184,15 +154,8 @@
                 <div class="section-title">
                     <i data-lucide="plane"></i>
                     <h2>Active Aircraft</h2>
-                    <button class="info-tip" type="button" aria-label="Active aircraft information">
-                        <i data-lucide="info"></i>
-                        <span class="info-fallback">?</span>
-                        <span class="tip" role="tooltip">
-                            Aircraft seen within the last 60 seconds.
-                        </span>
-                    </button>
                 </div>
-                <span class="count-badge" id="activeCount">0</span>
+                <span class="count-badge" id="aircraftCount">0</span>
             </div>
 
             <div class="aircraft-list" id="aircraftList"></div>
@@ -201,13 +164,301 @@
         <section class="card">
             <div class="section-head">
                 <div class="section-title">
-                    <i data-lucide="signal"></i>
-                    <h2>Receiver Signal</h2>
-                    <button class="info-tip" type="button" aria-label="Receiver signal information">
+                    <i data-lucide="bar-chart-2"></i>
+                    <h2>Session Statistics</h2>
+                    <button class="info-tip" type="button" aria-label="Session statistics information">
                         <i data-lucide="info"></i>
                         <span class="info-fallback">?</span>
                         <span class="tip" role="tooltip">
-                            Live SNR calculated from readsb last-minute signal and noise values.
+                            Cumulative statistics since readsb started.
+                        </span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>Duration</span>
+                        <button class="info-tip" type="button" aria-label="Duration information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                Time readsb has been running.
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="duration">N/A</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>Total Messages</span>
+                        <button class="info-tip" type="button" aria-label="Total messages information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                Valid ADS-B messages decoded since start.
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="totalMessages">N/A</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>Messages / h</span>
+                        <button class="info-tip" type="button" aria-label="Messages per hour information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                Average messages per hour.
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="messagesPerHour">N/A</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>Total Positions</span>
+                        <button class="info-tip" type="button" aria-label="Total positions information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                Position reports decoded since start.
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="totalPositions">N/A</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>Positions / h</span>
+                        <button class="info-tip" type="button" aria-label="Positions per hour information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                Average positions per hour.
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="positionsPerHour">N/A</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>Position Yield</span>
+                        <button class="info-tip" type="button" aria-label="Position yield information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                Percentage of messages that produced positions.
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="positionYield">N/A</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>Tracks</span>
+                        <button class="info-tip" type="button" aria-label="Tracks information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                Total tracks created (may include duplicates).
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="tracksAll">N/A</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>Multi-msg Tracks</span>
+                        <button class="info-tip" type="button" aria-label="Multi-message tracks information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                Tracks with more than one message (more reliable).
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="tracksMulti">N/A</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>Track Completion</span>
+                        <button class="info-tip" type="button" aria-label="Track completion information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                Percentage of tracks with multiple messages.
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="trackCompletion">N/A</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>Max Range</span>
+                        <button class="info-tip" type="button" aria-label="Max range information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                Maximum distance to an aircraft heard.
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="maxRange">N/A</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>Peak Signal</span>
+                        <button class="info-tip" type="button" aria-label="Peak signal information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                Strongest signal received since start.
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="peakSignal">N/A</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>Session SNR</span>
+                        <button class="info-tip" type="button" aria-label="Session SNR information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                Average SNR since readsb started.
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="sessionSnr">N/A</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="section-head">
+                <div class="section-title">
+                    <i data-lucide="heart-pulse"></i>
+                    <h2>Receiver Health</h2>
+                    <button class="info-tip" type="button" aria-label="Receiver health information">
+                        <i data-lucide="info"></i>
+                        <span class="info-fallback">?</span>
+                        <span class="tip" role="tooltip">
+                            System and receiver health metrics.
+                        </span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>CPU</span>
+                        <button class="info-tip" type="button" aria-label="CPU information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                Processor load.
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="cpuUsage">N/A</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>Temp</span>
+                        <button class="info-tip" type="button" aria-label="Temperature information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                CPU temperature.
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="cpuTemp">N/A</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>RAM</span>
+                        <button class="info-tip" type="button" aria-label="RAM information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                Memory usage.
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="ramUsage">N/A</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>Samples Dropped</span>
+                        <button class="info-tip" type="button" aria-label="Samples dropped information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                Should be zero. Non-zero indicates CPU overload.
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="samplesDropped">N/A</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>Samples Lost</span>
+                        <button class="info-tip" type="button" aria-label="Samples lost information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                Should be zero. Non-zero indicates USB issues.
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="samplesLost">N/A</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>Strong Signals</span>
+                        <button class="info-tip" type="button" aria-label="Strong signals information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">
+                                Messages with signal above -3 dBFS.
+                            </span>
+                        </button>
+                    </span>
+                    <strong id="strongSignals">N/A</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="section-head">
+                <div class="section-title">
+                    <i data-lucide="trending-up"></i>
+                    <h2>SNR 1m</h2>
+                    <button class="info-tip" type="button" aria-label="SNR chart information">
+                        <i data-lucide="info"></i>
+                        <span class="info-fallback">?</span>
+                        <span class="tip" role="tooltip">
+                            Live SNR trend from the last minute.
                         </span>
                     </button>
                 </div>
@@ -222,108 +473,6 @@
             <div class="chart-box">
                 <canvas id="snrChart"></canvas>
                 <div class="empty" id="chartEmpty">Waiting for signal data</div>
-            </div>
-        </section>
-
-        <section class="card">
-            <div class="section-head">
-                <div class="section-title">
-                    <i data-lucide="activity"></i>
-                    <h2>Receiver</h2>
-                    <button class="info-tip" type="button" aria-label="Receiver statistics information">
-                        <i data-lucide="info"></i>
-                        <span class="info-fallback">?</span>
-                        <span class="tip" role="tooltip">
-                            Long-term and last-minute decoder statistics from readsb.
-                        </span>
-                    </button>
-                </div>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat">
-                    <span class="stat-label">
-                        <span>Messages / 1 min</span>
-                        <button class="info-tip" type="button" aria-label="Messages information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
-                            <span class="tip" role="tooltip">
-                                Valid ADS-B messages decoded in the last minute.
-                            </span>
-                        </button>
-                    </span>
-                    <strong id="messages1m">N/A</strong>
-                </div>
-
-                <div class="stat">
-                    <span class="stat-label">
-                        <span>Positions / 1 min</span>
-                        <button class="info-tip" type="button" aria-label="Positions information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
-                            <span class="tip" role="tooltip">
-                                Position reports decoded in the last minute.
-                            </span>
-                        </button>
-                    </span>
-                    <strong id="positions1m">N/A</strong>
-                </div>
-
-                <div class="stat">
-                    <span class="stat-label">
-                        <span>Max Range</span>
-                        <button class="info-tip" type="button" aria-label="Max range information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
-                            <span class="tip" role="tooltip">
-                                Maximum distance to an aircraft heard since readsb started.
-                            </span>
-                        </button>
-                    </span>
-                    <strong id="maxRange">N/A</strong>
-                </div>
-
-                <div class="stat">
-                    <span class="stat-label">
-                        <span>Uptime</span>
-                        <button class="info-tip" type="button" aria-label="Uptime information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
-                            <span class="tip" role="tooltip">
-                                Time readsb has been running.
-                            </span>
-                        </button>
-                    </span>
-                    <strong id="uptime">N/A</strong>
-                </div>
-
-                <div class="stat">
-                    <span class="stat-label">
-                        <span>Samples Dropped</span>
-                        <button class="info-tip" type="button" aria-label="Samples dropped information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
-                            <span class="tip" role="tooltip">
-                                Samples dropped by readsb. This should normally be zero.
-                            </span>
-                        </button>
-                    </span>
-                    <strong id="samplesDropped">N/A</strong>
-                </div>
-
-                <div class="stat">
-                    <span class="stat-label">
-                        <span>Samples Lost</span>
-                        <button class="info-tip" type="button" aria-label="Samples lost information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
-                            <span class="tip" role="tooltip">
-                                Samples lost from the SDR. This should normally be zero.
-                            </span>
-                        </button>
-                    </span>
-                    <strong id="samplesLost">N/A</strong>
-                </div>
             </div>
         </section>
     </main>

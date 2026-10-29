@@ -438,7 +438,11 @@ body {
     gap: 8px;
 }
 
-.stat span {
+.stat-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
     color: #94a3b8;
     font-size: 12px;
     font-weight: 700;
@@ -515,23 +519,8 @@ body {
     transform: translateY(0);
 }
 
-.metric-label .info-tip,
-.stat-label .info-tip {
+.metric-label .info-tip {
     margin-left: auto;
-}
-
-.stat-label {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    color: #94a3b8;
-    font-size: 12px;
-    font-weight: 700;
-}
-
-.section-title .info-tip {
-    margin-left: 2px;
 }
 
 @media (min-width: 560px) {
@@ -562,7 +551,7 @@ body {
     }
 
     .metrics-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .aircraft-list {
@@ -580,6 +569,10 @@ body {
 
 @media (min-width: 1100px) {
     .aircraft-list {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .stats-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }
