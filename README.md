@@ -1,62 +1,126 @@
 # SimorghDeck
 
-Mobile-first RTL-SDR ADS-B dashboard for readsb.
+Mobile-first RTL-SDR ADS-B dashboard for readsb and tar1090.
 
 ## Features
 
-- readsb service control
-- CPU, temperature and RAM metrics
-- RTL-SDR gain and PPM
-- Receiver SNR chart
-- Active aircraft cards
-- Aircraft position and signal indicators
-- tar1090 and pTracks shortcuts
+- Live RTL-SDR receiver stats (Gain, PPM, SNR, Dropped/Lost samples)
+- Active aircraft cards with telemetry (Altitude, Speed, Heading, RSSI)
+- Live SNR trend chart
+- readsb service control (Start / Stop / Restart)
+- Quick links to tar1090 and pTracks
 - Fully local frontend assets
+- Mobile-optimized responsive UI
 
-## Requirements
+## Prerequisites
 
-- Python 3
-- FastAPI
-- Uvicorn
-- psutil
-- readsb or dump1090-fa
+This panel assumes you already have `readsb` and `tar1090` installed and running on your system.
 
-## Project Structure
+If you haven't installed them yet, the recommended method is using the automatic installation script by wiedehopf:
 
-app.py
-static/
-  index.html
-  style.css
-  app.js
-  vendor/
-    chart.umd.js
-    lucide.min.js
+https://github.com/wiedehopf/adsb-scripts/wiki/Automatic-installation-for-readsb
 
-## Local Assets
+## Installation
 
-All frontend assets are served locally.
-No CDN or external runtime dependency is required.
+```bash
+cd ~
+git clone https://github.com/mostafaasadi/simorghdeck.git
+cd simorghdeck
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
 
-To refresh vendor assets:
+## Systemd Service
 
-bash download_assets.sh
+Replace `YOUR_USERNAME` with your actual Linux username.
 
-## Run
+Create the service file:
 
-python3 -m uvicorn app:app --host 0.0.0.0 --port 8080
+```bash
+sudo nano /etc/systemd/system/simorghdeck.service
+```
 
-## Open
+Paste the following configuration:
 
-http://RASPBERRY_PI_IP:8080/deck/
+```ini
+[Unit]
+Description=SimorghDeck Radar Dashboard
+After=network.target readsb.service
 
-## readsb Data Sources
+[Service]
+User=YOUR_USERNAME
+WorkingDirectory=/home/YOUR_USERNAME/simorghdeck
+ExecStart=/home/YOUR_USERNAME/simorghdeck/venv/bin/uvicorn app:app --host 127.0.0.1 --port 8000
+Restart=always
 
-The panel reads:
+[Install]
+WantedBy=multi-user.target
+```
 
-/run/readsb/aircraft.json
-/run/readsb/stats.json
-/run/readsb/status.json
+Enable and start the service:
 
-Fallback:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable simorghdeck
+sudo systemctl start simorghdeck
+```
 
-/run/dump1090-fa/
+## Accessing the Panel
+
+By default, SimorghDeck runs on `127.0.0.1:8000`.
+
+On the Raspberry Pi itself:
+
+```text
+http://127.0.0.1:8000/deck/
+```
+
+For direct access from other devices, change `127.0.0.1` to `0.0.0.0` in the service file, restart the service, then open:
+
+```text
+http://YOUR_RASPBERRY_PI_IP:8000/deck/
+```
+
+If you want to serve it through a web server alongside tar1090, configure a reverse proxy.
+
+Example for lighttpd:
+
+```bash
+sudo nano /etc/lighttpd/conf-enabled/89-simorghdeck.conf
+```
+
+Paste:
+
+```lighttpd
+$HTTP["url"] =~ "^/deck" {
+    proxy.server = (
+        "" => (
+            (
+                "host" => "127.0.0.1",
+                "port" => 8000
+            )
+        )
+    )
+}
+```
+
+Enable the proxy module if needed and restart lighttpd:
+
+```bash
+sudo lighttpd-enable-mod proxy
+sudo systemctl restart lighttpd
+```
+
+Then open:
+
+```text
+http://YOUR_RASPBERRY_PI_IP/deck/
+```
+
+## Credits
+
+This project uses the following open-source libraries, served locally:
+
+- Chart.js — https://www.chartjs.org/
+- Lucide — https://lucide.dev/
