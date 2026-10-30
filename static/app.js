@@ -30,7 +30,7 @@ async function refresh() {
 
         renderSystem(data.system);
         renderService(data.service);
-        renderReceiver(data.receiver);
+        renderReceiver(data.receiver, data.aircraft);
         renderAircraft(data.aircraft || {});
         updateChart(data.receiver ? data.receiver.snr_db_1m : null, data.receiver ? data.receiver.stats_now : null);
     } catch (error) {
@@ -170,7 +170,7 @@ function renderService(service) {
     }
 }
 
-function renderReceiver(receiver) {
+function renderReceiver(receiver, aircraft) {
     if (!receiver) {
         return;
     }
@@ -215,18 +215,23 @@ function renderReceiver(receiver) {
     setAlertCount('samplesLost', receiver.samples_lost);
     setText('strongSignals', formatInteger(receiver.strong_signals));
 
-    setText('lastTraffic', getLastTrafficStatus(receiver));
+    setText('lastTraffic', getLastTrafficStatus(receiver, aircraft));
 }
 
-function getLastTrafficStatus(receiver) {
-    if (receiver.messages_1m > 0) {
+function getLastTrafficStatus(receiver, aircraft) {
+    const activeCount = aircraft && isNumber(aircraft.active_count) ? aircraft.active_count : 0;
+
+    if (activeCount > 0) {
         return 'Now';
     }
+    if (receiver.messages_1m > 0) {
+        return 'Msg < 1 min';
+    }
     if (receiver.messages_5m > 0) {
-        return '< 5 min';
+        return 'Msg < 5 min';
     }
     if (receiver.messages_15m > 0) {
-        return '< 15 min';
+        return 'Msg < 15 min';
     }
     if (receiver.messages_total > 0) {
         return 'Earlier';

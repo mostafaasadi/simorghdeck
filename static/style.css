@@ -35,17 +35,9 @@ body {
     display: none !important;
 }
 
-.text-success {
-    color: #34d399;
-}
-
-.text-warning {
-    color: #fbbf24;
-}
-
-.text-danger {
-    color: #f87171;
-}
+.text-success { color: #34d399; }
+.text-warning { color: #fbbf24; }
+.text-danger { color: #f87171; }
 
 .header {
     display: flex;
@@ -88,8 +80,8 @@ body {
 }
 
 .header-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-wrap: wrap;
     gap: 10px;
 }
 
@@ -118,21 +110,12 @@ body {
     cursor: not-allowed;
 }
 
-.btn-primary {
-    background: #3b82f6;
-}
-
-.btn-success {
-    background: #10b981;
-}
-
-.btn-danger {
-    background: #ef4444;
-}
-
-.btn-warning {
-    background: #f59e0b;
-}
+.btn-primary { background: #3b82f6; }
+.btn-success { background: #10b981; }
+.btn-danger { background: #ef4444; }
+.btn-warning { background: #f59e0b; }
+.btn-info { background: #0ea5e9; }
+.btn-secondary { background: #64748b; }
 
 .service-card {
     display: flex;
@@ -185,35 +168,12 @@ body {
     font-weight: 700;
 }
 
-.badge.active {
-    background: rgba(16, 185, 129, 0.16);
-    color: #34d399;
-}
-
-.badge.inactive {
-    background: rgba(239, 68, 68, 0.16);
-    color: #f87171;
-}
-
-.badge.info {
-    background: rgba(56, 189, 248, 0.16);
-    color: #38bdf8;
-}
-
-.badge.muted {
-    background: rgba(148, 163, 184, 0.16);
-    color: #94a3b8;
-}
-
-.badge.neutral {
-    background: rgba(148, 163, 184, 0.16);
-    color: #e2e8f0;
-}
-
-.badge.danger {
-    background: rgba(239, 68, 68, 0.18);
-    color: #f87171;
-}
+.badge.active { background: rgba(16, 185, 129, 0.16); color: #34d399; }
+.badge.inactive { background: rgba(239, 68, 68, 0.16); color: #f87171; }
+.badge.info { background: rgba(56, 189, 248, 0.16); color: #38bdf8; }
+.badge.muted { background: rgba(148, 163, 184, 0.16); color: #94a3b8; }
+.badge.neutral { background: rgba(148, 163, 184, 0.16); color: #e2e8f0; }
+.badge.danger { background: rgba(239, 68, 68, 0.18); color: #f87171; }
 
 .metrics-grid {
     display: grid;
@@ -538,6 +498,7 @@ body {
 
     .header-actions {
         display: flex;
+        flex-wrap: nowrap;
     }
 
     .service-card {
