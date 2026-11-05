@@ -198,7 +198,7 @@ def parse_receiver():
     last15 = stats.get("last15min", {}) if isinstance(stats.get("last15min"), dict) else {}
     total = stats.get("total", {}) if isinstance(stats.get("total"), dict) else {}
     local_total = total.get("local", {}) if isinstance(total.get("local"), dict) else {}
-    tracks = total.get("tracks", {}) if isinstance(total.get("tracks"), dict) else {}
+    tracks_total = total.get("tracks", {}) if isinstance(total.get("tracks"), dict) else {}
 
     signal_1m = to_number(last1.get("local", {}).get("signal"))
     noise_1m = to_number(last1.get("local", {}).get("noise"))
@@ -225,8 +225,8 @@ def parse_receiver():
     positions_per_hour = round(position_count_total / uptime * 3600, 1) if uptime and uptime > 0 else None
     position_yield = round(position_count_total / messages_valid * 100, 1) if messages_valid > 0 else None
 
-    tracks_all = to_int(tracks.get("all"), 0)
-    tracks_single = to_int(tracks.get("single_message"), 0)
+    tracks_all = to_int(tracks_total.get("all"), 0)
+    tracks_single = to_int(tracks_total.get("single_message"), 0)
     tracks_multi = tracks_all - tracks_single
     track_completion = round(tracks_multi / tracks_all * 100, 1) if tracks_all > 0 else None
 
@@ -266,9 +266,6 @@ def parse_receiver():
         "strong_signals": to_int(local_total.get("strong_signals"), 0),
         "samples_dropped": to_int(local_total.get("samples_dropped"), 0),
         "samples_lost": to_int(local_total.get("samples_lost"), 0),
-        "messages_1m": to_int(last1.get("messages_valid"), 0),
-        "messages_5m": to_int(last5.get("messages_valid"), 0),
-        "messages_15m": to_int(last15.get("messages_valid"), 0),
         "positions_1m": to_int(last1.get("position_count_total"), 0),
         "positions_5m": to_int(last5.get("position_count_total"), 0),
         "positions_15m": to_int(last15.get("position_count_total"), 0)

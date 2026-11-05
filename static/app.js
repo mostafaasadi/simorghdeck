@@ -4,6 +4,16 @@ const MAX_POINTS = 900;
 let lastStatsNow = null;
 let activeInfoTip = null;
 
+let cpuPoints = [];
+let tempPoints = [];
+let ramPoints = [];
+const MAX_SYSTEM_POINTS = 30;
+
+const aircraftHistory = new Map();
+const MAX_AIRCRAFT_POINTS = 30;
+
+const SPARK_GLYPHS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+
 document.addEventListener('DOMContentLoaded', () => {
     bindServiceButtons();
     bindInfoTips();
@@ -149,6 +159,123 @@ function renderSystem(system) {
     setText('cpuUsage', isNumber(system.cpu_usage) ? Math.round(system.cpu_usage) + '%' : 'N/A');
     setText('cpuTemp', isNumber(system.cpu_temp) ? system.cpu_temp + ' °C' : 'N/A');
     setText('ramUsage', isNumber(system.ram_usage) ? Math.round(system.ram_usage) + '%' : 'N/A');
+
+    if (isNumber(system.cpu_usage)) {
+        cpuPoints.push(system.cpu_usage);
+        if (cpuPoints.length > MAX_SYSTEM_POINTS) cpuPoints.shift();
+        drawMiniSparkline('cpuSparkline', cpuPoints, '#38bdf8');
+    }
+
+    if (isNumber(system.cpu_temp)) {
+        tempPoints.push(system.cpu_temp);
+        if (tempPoints.length > MAX_SYSTEM_POINTS) tempPoints.shift();
+        drawMiniSparkline('tempSparkline', tempPoints, '#f59e0b');
+    }
+
+    if (isNumber(system.ram_usage)) {
+        ramPoints.push(system.ram_usage);
+        if (ramPoints.length > MAX_SYSTEM_POINTS) ramPoints.shift();
+        drawMiniSparkline('ramSparkline', ramPoints, '#10b981');
+    }
+}
+
+function drawMiniSparkline(canvasId, points, color) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || points.length < 2) {
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const width = rect.width;
+    const height = rect.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    const min = Math.min(...points);
+    const max = Math.max(...points);
+    const range = max - min || 1;
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.globalAlpha = 0.85;
+
+    ctx.beginPath();
+    points.forEach((point, index) => {
+        const x = (index / (points.length - 1)) * width;
+        const y = height - ((point - min) / range) * (height - 2) - 1;
+
+        if (index === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+}
+
+function updateAircraftHistory(hex, ac) {
+    if (!aircraftHistory.has(hex)) {
+        aircraftHistory.set(hex, {
+            alt: [],
+            spd: [],
+            vert: [],
+            rssi: []
+        });
+    }
+
+    const h = aircraftHistory.get(hex);
+
+    h.alt.push(isNumber(ac.alt_m) ? ac.alt_m : null);
+    h.spd.push(isNumber(ac.speed_kmh) ? ac.speed_kmh : null);
+    h.vert.push(isNumber(ac.vertical_mps) ? ac.vertical_mps : null);
+    h.rssi.push(isNumber(ac.rssi_db) ? ac.rssi_db : null);
+
+    if (h.alt.length > MAX_AIRCRAFT_POINTS) h.alt.shift();
+    if (h.spd.length > MAX_AIRCRAFT_POINTS) h.spd.shift();
+    if (h.vert.length > MAX_AIRCRAFT_POINTS) h.vert.shift();
+    if (h.rssi.length > MAX_AIRCRAFT_POINTS) h.rssi.shift();
+}
+
+function cleanupAircraftHistory(activeHexes) {
+    for (const hex of aircraftHistory.keys()) {
+        if (!activeHexes.has(hex)) {
+            aircraftHistory.delete(hex);
+        }
+    }
+}
+
+function sparklineBarsHtml(points, color) {
+    const validPoints = points.filter(p => p !== null && p !== undefined);
+
+    if (validPoints.length < 2) {
+        return '';
+    }
+
+    const last8 = points.slice(-8);
+    const min = Math.min(...validPoints);
+    const max = Math.max(...validPoints);
+    const range = max - min || 1;
+
+    const bars = last8.map(point => {
+        if (point === null || point === undefined) {
+            return `<span style="color: ${color}; opacity: 0.25">·</span>`;
+        }
+        const normalized = (point - min) / range;
+        const index = Math.min(Math.floor(normalized * SPARK_GLYPHS.length), SPARK_GLYPHS.length - 1);
+        return `<span style="color: ${color}">${SPARK_GLYPHS[index]}</span>`;
+    }).join('');
+
+    return `<div class="sparkline-bars">${bars}</div>`;
 }
 
 function renderService(service) {
@@ -178,21 +305,17 @@ function renderReceiver(receiver, aircraft) {
     setText('gainDb', formatValue(receiver.gain_db, 'dB'));
     setText('ppmValue', formatValue(receiver.estimated_ppm, 'ppm'));
     setText('snrMetric', formatValue(receiver.snr_db_1m, 'dB'));
-    setSnrColor('snrMetric', receiver.snr_db_1m, receiver.messages_1m);
-
-    setText('withPos', isNumber(receiver.aircraft_with_pos) ? String(receiver.aircraft_with_pos) : 'N/A');
+    setSnrColor('snrMetric', receiver.snr_db_1m);
 
     setText('snrCurrent', formatValue(receiver.snr_db_1m, 'dB'));
     setText('signalCurrent', formatValue(receiver.signal_db_1m, 'dB'));
     setText('noiseCurrent', formatValue(receiver.noise_db_1m, 'dB'));
 
-    setText('duration', formatDuration(receiver.uptime_seconds));
-    setText('totalMessages', formatInteger(receiver.messages_total));
+    setText('uptime', formatDuration(receiver.uptime_seconds));
+
     setText('messagesPerHour', formatValue(receiver.messages_per_hour, '/h'));
-    setText('totalPositions', formatInteger(receiver.positions_total));
     setText('positionsPerHour', formatValue(receiver.positions_per_hour, '/h'));
     setText('positionYield', formatValue(receiver.position_yield, '%'));
-    setText('tracksAll', formatInteger(receiver.tracks_all));
     setText('tracksMulti', formatInteger(receiver.tracks_multi));
     setText('trackCompletion', formatValue(receiver.track_completion, '%'));
 
@@ -208,13 +331,6 @@ function renderReceiver(receiver, aircraft) {
         setText('maxRange', 'N/A');
     }
 
-    setText('peakSignal', formatValue(receiver.peak_signal, 'dBFS'));
-    setText('sessionSnr', formatValue(receiver.snr_db, 'dB'));
-
-    setAlertCount('samplesDropped', receiver.samples_dropped);
-    setAlertCount('samplesLost', receiver.samples_lost);
-    setText('strongSignals', formatInteger(receiver.strong_signals));
-
     setText('lastTraffic', getLastTrafficStatus(receiver, aircraft));
 }
 
@@ -224,19 +340,19 @@ function getLastTrafficStatus(receiver, aircraft) {
     if (activeCount > 0) {
         return 'Now';
     }
-    if (receiver.messages_1m > 0) {
-        return 'Msg < 1 min';
+    if (receiver.positions_1m > 0) {
+        return 'Now';
     }
-    if (receiver.messages_5m > 0) {
-        return 'Msg < 5 min';
+    if (receiver.positions_5m > 0) {
+        return 'Within 5 min';
     }
-    if (receiver.messages_15m > 0) {
-        return 'Msg < 15 min';
+    if (receiver.positions_15m > 0) {
+        return 'Within 15 min';
     }
-    if (receiver.messages_total > 0) {
-        return 'Earlier';
+    if (receiver.positions_total > 0) {
+        return 'Earlier in session';
     }
-    return 'None';
+    return 'No traffic yet';
 }
 
 function renderAircraft(aircraft) {
@@ -257,6 +373,14 @@ function renderAircraft(aircraft) {
     }
 
     const items = Array.isArray(aircraft.items) ? aircraft.items : [];
+    const activeHexes = new Set();
+
+    items.forEach(item => {
+        updateAircraftHistory(item.hex, item);
+        activeHexes.add(item.hex);
+    });
+
+    cleanupAircraftHistory(activeHexes);
 
     if (!items.length) {
         list.innerHTML = '<div class="empty">No active aircraft</div>';
@@ -266,18 +390,33 @@ function renderAircraft(aircraft) {
     list.innerHTML = items.map(item => aircraftCard(item)).join('');
 }
 
+function infoTip(tooltipText) {
+    return `
+        <button class="info-tip data-tip" type="button" aria-label="Info">
+            <i data-lucide="info"></i>
+            <span class="info-fallback">?</span>
+            <span class="tip" role="tooltip">${escapeHtml(tooltipText)}</span>
+        </button>
+    `;
+}
+
 function aircraftCard(ac) {
     const title = ac.flight || ac.hex || 'UNKNOWN';
+    const hex = ac.hex;
     const positionBadge = ac.has_position
         ? '<span class="badge info">POS</span>'
         : '<span class="badge muted">NO POS</span>';
 
     const squawkBadge = ac.squawk
-        ? `<span class="badge ${ac.emergency ? 'danger' : 'neutral'}">${escapeHtml(ac.squawk)}</span>`
+        ? `<span class="badge ${ac.emergency ? 'danger pulse' : 'neutral'}">${escapeHtml(ac.squawk)}</span>`
         : '';
 
+    const cardClass = ac.emergency ? 'aircraft-card emergency' : (ac.on_ground ? 'aircraft-card on-ground' : 'aircraft-card');
+
+    const history = aircraftHistory.get(hex) || { alt: [], spd: [], vert: [], rssi: [] };
+
     return `
-        <article class="aircraft-card ${ac.emergency ? 'emergency' : ''}">
+        <article class="${cardClass}">
             <div class="aircraft-top">
                 <div class="ident">
                     <span class="flight">${escapeHtml(title)}</span>
@@ -290,38 +429,99 @@ function aircraftCard(ac) {
             </div>
 
             <div class="aircraft-grid">
-                <div class="data">
-                    <span class="label">ALT</span>
-                    <span class="value">${altitudeValue(ac)}</span>
+                <div class="data has-bars">
+                    <span class="data-head">
+                        <span>ALT</span>
+                        ${infoTip('Barometric altitude above sea level.')}
+                    </span>
+                    <span class="value ${ac.on_ground ? 'ground-value' : ''}">${altitudeValue(ac)}</span>
+                    ${sparklineBarsHtml(history.alt, '#38bdf8')}
                 </div>
 
-                <div class="data">
-                    <span class="label">SPD</span>
+                <div class="data has-bars">
+                    <span class="data-head">
+                        <span>SPD</span>
+                        ${infoTip('Ground speed in kilometers per hour.')}
+                    </span>
                     <span class="value">${speedValue(ac)}</span>
+                    ${sparklineBarsHtml(history.spd, '#10b981')}
                 </div>
 
                 <div class="data">
-                    <span class="label">HDG</span>
+                    <span class="data-head">
+                        <span>HDG</span>
+                        ${infoTip('True track over ground in degrees (0-359).')}
+                    </span>
                     <span class="value">${headingValue(ac.track_deg)}</span>
                 </div>
 
-                <div class="data">
-                    <span class="label">VERT</span>
-                    <span class="value">${verticalValue(ac.vertical_mps)}</span>
+                <div class="data has-bars">
+                    <span class="data-head">
+                        <span>VERT</span>
+                        ${infoTip('Vertical rate in meters per second. Positive means climbing, negative means descending.')}
+                    </span>
+                    <span class="value ${verticalClass(ac.vertical_mps)}">${verticalValue(ac.vertical_mps)}</span>
+                    ${sparklineBarsHtml(history.vert, '#f59e0b')}
+                </div>
+
+                <div class="data has-bars">
+                    <span class="data-head">
+                        <span>RSSI</span>
+                        ${infoTip('Received Signal Strength Indicator. Higher (closer to 0) means stronger signal.')}
+                    </span>
+                    <span class="value ${rssiClass(ac.rssi_db)}">${rssiValue(ac.rssi_db)}</span>
+                    ${sparklineBarsHtml(history.rssi, '#a78bfa')}
                 </div>
 
                 <div class="data">
-                    <span class="label">RSSI</span>
-                    <span class="value">${rssiValue(ac.rssi_db)}</span>
-                </div>
-
-                <div class="data">
-                    <span class="label">SEEN</span>
-                    <span class="value">${seenValue(ac.seen_s)}</span>
+                    <span class="data-head">
+                        <span>SEEN</span>
+                        ${infoTip('Seconds since the last message was received from this aircraft.')}
+                    </span>
+                    <span class="value ${seenClass(ac.seen_s)}">${seenValue(ac.seen_s)}</span>
                 </div>
             </div>
         </article>
     `;
+}
+
+function rssiClass(value) {
+    if (!isNumber(value)) {
+        return '';
+    }
+    if (value >= -10) {
+        return 'text-success';
+    }
+    if (value >= -20) {
+        return 'text-warning';
+    }
+    return 'text-danger';
+}
+
+function seenClass(value) {
+    if (!isNumber(value)) {
+        return '';
+    }
+    if (value <= 15) {
+        return 'text-success';
+    }
+    if (value <= 30) {
+        return 'text-warning';
+    }
+    return 'text-danger';
+}
+
+function verticalClass(value) {
+    if (!isNumber(value)) {
+        return '';
+    }
+    if (value > 0.5) {
+        return 'text-success';
+    }
+    if (value < -0.5) {
+        return 'text-danger';
+    }
+    return '';
 }
 
 function bindServiceButtons() {
@@ -419,28 +619,7 @@ function rssiValue(value) {
         return 'N/A';
     }
 
-    return `${value.toFixed(1)} dB ${rssiBars(value)}`;
-}
-
-function rssiBars(value) {
-    let level = 0;
-
-    if (value >= -3) {
-        level = 5;
-    } else if (value >= -8) {
-        level = 4;
-    } else if (value >= -14) {
-        level = 3;
-    } else if (value >= -22) {
-        level = 2;
-    } else if (value >= -30) {
-        level = 1;
-    }
-
-    const glyphs = ['▂', '▄', '▆', '▇', '█'];
-    const visible = glyphs.slice(0, level).join('');
-
-    return `<span class="rssi">${visible || '·'}</span>`;
+    return `${value.toFixed(1)} dB`;
 }
 
 function seenValue(value) {
@@ -494,7 +673,7 @@ function formatDuration(seconds) {
     return `${m}m ${s}s`;
 }
 
-function setSnrColor(id, value, messages) {
+function setSnrColor(id, value) {
     const el = document.getElementById(id);
 
     if (!el) {
@@ -507,10 +686,6 @@ function setSnrColor(id, value, messages) {
         return;
     }
 
-    if (!isNumber(messages) || messages === 0) {
-        return;
-    }
-
     if (value >= 10) {
         el.classList.add('text-success');
     } else if (value >= 0) {
@@ -518,24 +693,6 @@ function setSnrColor(id, value, messages) {
     } else {
         el.classList.add('text-danger');
     }
-}
-
-function setAlertCount(id, value) {
-    const el = document.getElementById(id);
-
-    if (!el) {
-        return;
-    }
-
-    if (!isNumber(value)) {
-        el.textContent = 'N/A';
-        el.classList.remove('text-danger');
-        return;
-    }
-
-    const count = Math.round(value);
-    el.textContent = String(count);
-    el.classList.toggle('text-danger', count > 0);
 }
 
 function escapeHtml(value) {
@@ -551,47 +708,38 @@ function escapeHtml(value) {
 }
 
 function bindInfoTips() {
-    document.querySelectorAll('.info-tip').forEach(tip => {
-        tip.addEventListener('click', event => {
-            event.preventDefault();
-            event.stopPropagation();
+    document.addEventListener('click', event => {
+        const tip = event.target.closest('.info-tip');
 
-            const isOpen = tip.classList.contains('show');
-
+        if (!tip) {
             closeInfoTips();
+            return;
+        }
 
-            if (!isOpen) {
-                tip.classList.add('show');
-                activeInfoTip = tip;
-            }
-        });
+        event.preventDefault();
+        event.stopPropagation();
 
-        tip.addEventListener('mouseenter', () => {
-            if (!activeInfoTip || activeInfoTip === tip) {
-                tip.classList.add('show');
-            }
-        });
+        const isOpen = tip.classList.contains('show');
 
-        tip.addEventListener('mouseleave', () => {
-            if (activeInfoTip !== tip) {
-                tip.classList.remove('show');
-            }
-        });
+        closeInfoTips();
 
-        tip.addEventListener('focus', () => {
+        if (!isOpen) {
             tip.classList.add('show');
-        });
-
-        tip.addEventListener('blur', () => {
-            if (activeInfoTip !== tip) {
-                tip.classList.remove('show');
-            }
-        });
+            activeInfoTip = tip;
+        }
     });
 
-    document.addEventListener('click', event => {
-        if (!event.target.closest('.info-tip')) {
-            closeInfoTips();
+    document.addEventListener('mouseover', event => {
+        const tip = event.target.closest('.info-tip');
+        if (tip && (!activeInfoTip || activeInfoTip === tip)) {
+            tip.classList.add('show');
+        }
+    });
+
+    document.addEventListener('mouseout', event => {
+        const tip = event.target.closest('.info-tip');
+        if (tip && activeInfoTip !== tip) {
+            tip.classList.remove('show');
         }
     });
 
