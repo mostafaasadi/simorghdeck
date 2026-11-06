@@ -254,7 +254,7 @@ body {
 
 .aircraft-list {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr));
     gap: 12px;
 }
 
@@ -266,7 +266,6 @@ body {
     display: flex;
     flex-direction: column;
     gap: 14px;
-    min-width: 380px;
 }
 
 .aircraft-card.on-ground {
@@ -584,25 +583,11 @@ body {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
-    .aircraft-list {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
     .stats-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .chart-box {
         height: 280px;
-    }
-}
-
-@media (min-width: 1100px) {
-    .aircraft-list {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-
-    .stats-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }

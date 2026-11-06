@@ -20,6 +20,8 @@ RUNTIME_DIRS = [
 ]
 
 _json_cache = {}
+_last_traffic_timestamp = None
+_last_stats_now = None
 
 psutil.cpu_percent(interval=None)
 
@@ -190,6 +192,8 @@ def parse_aircraft():
 
 
 def parse_receiver():
+    global _last_traffic_timestamp, _last_stats_now
+
     stats = load_runtime_json("stats.json")
     status = load_runtime_json("status.json")
 
@@ -239,8 +243,39 @@ def parse_receiver():
         to_int(stats.get("aircraft_without_pos"), 0)
     )
 
+    stats_now = to_number(stats.get("now"), to_number(status.get("now"), 0))
+    positions_1m = to_int(last1.get("position_count_total"), 0)
+    current_aircraft = with_pos + without_pos
+
+    if _last_stats_now is not None and abs(stats_now - _last_stats_now) > 300:
+        _last_traffic_timestamp = None
+    _last_stats_now = stats_now
+
+    def format_minutes_ago(minutes):
+        if minutes is None:
+            return None
+        minutes = int(round(minutes))
+        if minutes < 1:
+            return "Just now"
+        if minutes < 60:
+            return f"{minutes} min ago"
+        hours = minutes // 60
+        mins = minutes % 60
+        if mins > 0:
+            return f"{hours}h {mins}m ago"
+        return f"{hours}h ago"
+
+    if current_aircraft > 0 or positions_1m > 0:
+        _last_traffic_timestamp = stats_now
+        last_traffic = "Just now"
+    elif _last_traffic_timestamp is not None:
+        minutes = (stats_now - _last_traffic_timestamp) / 60
+        last_traffic = format_minutes_ago(minutes) or "Just now"
+    else:
+        last_traffic = "No traffic"
+
     return {
-        "stats_now": to_number(stats.get("now"), to_number(status.get("now"))),
+        "stats_now": stats_now,
         "uptime_seconds": uptime,
         "gain_db": to_number(stats.get("gain_db")),
         "estimated_ppm": to_number(stats.get("estimated_ppm")),
@@ -266,9 +301,8 @@ def parse_receiver():
         "strong_signals": to_int(local_total.get("strong_signals"), 0),
         "samples_dropped": to_int(local_total.get("samples_dropped"), 0),
         "samples_lost": to_int(local_total.get("samples_lost"), 0),
-        "positions_1m": to_int(last1.get("position_count_total"), 0),
-        "positions_5m": to_int(last5.get("position_count_total"), 0),
-        "positions_15m": to_int(last15.get("position_count_total"), 0)
+        "positions_1m": positions_1m,
+        "last_traffic": last_traffic
     }
 
 

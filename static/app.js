@@ -330,29 +330,7 @@ function renderReceiver(receiver, aircraft) {
     } else {
         setText('maxRange', 'N/A');
     }
-
-    setText('lastTraffic', getLastTrafficStatus(receiver, aircraft));
-}
-
-function getLastTrafficStatus(receiver, aircraft) {
-    const activeCount = aircraft && isNumber(aircraft.active_count) ? aircraft.active_count : 0;
-
-    if (activeCount > 0) {
-        return 'Now';
-    }
-    if (receiver.positions_1m > 0) {
-        return 'Now';
-    }
-    if (receiver.positions_5m > 0) {
-        return 'Within 5 min';
-    }
-    if (receiver.positions_15m > 0) {
-        return 'Within 15 min';
-    }
-    if (receiver.positions_total > 0) {
-        return 'Earlier in session';
-    }
-    return 'No traffic yet';
+    setText('lastTraffic', receiver.last_traffic || 'N/A');
 }
 
 function renderAircraft(aircraft) {
