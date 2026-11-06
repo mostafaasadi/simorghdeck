@@ -1,6 +1,9 @@
 import os
 import json
+import time
 import subprocess
+import urllib.request
+import urllib.error
 import psutil
 from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -19,9 +22,17 @@ RUNTIME_DIRS = [
     "/run/dump1090-fa"
 ]
 
+SERVICE_PROBE_URLS = {
+    "tar1090": "http://127.0.0.1/tar1090/",
+    "graphs1090": "http://127.0.0.1/graphs1090/"
+}
+
+SERVICE_STATUS_TTL = 15
+
 _json_cache = {}
+_service_status_cache = {}
+
 _last_traffic_timestamp = None
-_last_stats_now = None
 
 psutil.cpu_percent(interval=None)
 
@@ -99,17 +110,60 @@ def get_cpu_temp():
         return None
 
 
-def is_service_active(service_name="readsb"):
+def probe_http(url):
+    try:
+        request = urllib.request.Request(url, method="GET")
+        with urllib.request.urlopen(request, timeout=3) as response:
+            return response.status < 400
+    except urllib.error.HTTPError:
+        return False
+    except Exception:
+        return None
+
+
+def probe_service(name):
     try:
         result = subprocess.run(
-            ["systemctl", "is-active", service_name],
+            ["systemctl", "is-active", name],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
+            timeout=5
         )
-        return result.stdout.strip() == "active"
+        state = result.stdout.strip()
     except Exception:
-        return False
+        return "unknown"
+
+    if state == "active":
+        return "running"
+    if state == "failed":
+        return "failed"
+    if state in ("inactive", "deactivating"):
+        return "stopped"
+    if state == "activating":
+        return "unknown"
+
+    url = SERVICE_PROBE_URLS.get(name)
+    if not url:
+        return "unknown"
+
+    ok = probe_http(url)
+    if ok is True:
+        return "running"
+    if ok is False:
+        return "stopped"
+    return "unknown"
+
+
+def get_service_status(name):
+    now = time.monotonic()
+    cached = _service_status_cache.get(name)
+    if cached and (now - cached[0]) < SERVICE_STATUS_TTL:
+        return cached[1]
+
+    status = probe_service(name)
+    _service_status_cache[name] = (now, status)
+    return status
 
 
 def parse_aircraft():
@@ -130,6 +184,8 @@ def parse_aircraft():
 
         hex_code = str(raw.get("hex") or "").strip().upper()
         flight = str(raw.get("flight") or "").strip()
+        registration = str(raw.get("r") or "").strip()
+        aircraft_type = str(raw.get("t") or "").strip()
 
         alt_raw = raw.get("alt_baro", raw.get("altitude"))
         on_ground = str(alt_raw).strip().lower() == "ground"
@@ -163,6 +219,8 @@ def parse_aircraft():
         items.append({
             "hex": hex_code,
             "flight": flight,
+            "registration": registration,
+            "aircraft_type": aircraft_type,
             "alt_m": alt_m,
             "on_ground": on_ground,
             "speed_kmh": speed_kmh,
@@ -192,7 +250,7 @@ def parse_aircraft():
 
 
 def parse_receiver():
-    global _last_traffic_timestamp, _last_stats_now
+    global _last_traffic_timestamp
 
     stats = load_runtime_json("stats.json")
     status = load_runtime_json("status.json")
@@ -204,9 +262,15 @@ def parse_receiver():
     local_total = total.get("local", {}) if isinstance(total.get("local"), dict) else {}
     tracks_total = total.get("tracks", {}) if isinstance(total.get("tracks"), dict) else {}
 
-    signal_1m = to_number(last1.get("local", {}).get("signal"))
-    noise_1m = to_number(last1.get("local", {}).get("noise"))
-    snr_1m = round(signal_1m - noise_1m, 1) if signal_1m is not None and noise_1m is not None else None
+    local_5 = last5.get("local", {}) if isinstance(last5.get("local"), dict) else {}
+    signal_5m = to_number(local_5.get("signal"))
+    noise_5m = to_number(local_5.get("noise"))
+    samples_5m = to_int(local_5.get("samples_processed"))
+
+    snr_5m = None
+    if signal_5m is not None and noise_5m is not None and noise_5m < 0:
+        if samples_5m is None or samples_5m > 0:
+            snr_5m = round(signal_5m - noise_5m, 1)
 
     signal_total = to_number(local_total.get("signal"))
     noise_total = to_number(local_total.get("noise"))
@@ -247,10 +311,6 @@ def parse_receiver():
     positions_1m = to_int(last1.get("position_count_total"), 0)
     current_aircraft = with_pos + without_pos
 
-    if _last_stats_now is not None and abs(stats_now - _last_stats_now) > 300:
-        _last_traffic_timestamp = None
-    _last_stats_now = stats_now
-
     def format_minutes_ago(minutes):
         if minutes is None:
             return None
@@ -281,9 +341,9 @@ def parse_receiver():
         "estimated_ppm": to_number(stats.get("estimated_ppm")),
         "aircraft_with_pos": with_pos,
         "aircraft_without_pos": without_pos,
-        "signal_db_1m": signal_1m,
-        "noise_db_1m": noise_1m,
-        "snr_db_1m": snr_1m,
+        "signal_db_5m": signal_5m,
+        "noise_db_5m": noise_5m,
+        "snr_db_5m": snr_5m,
         "signal_db": signal_total,
         "noise_db": noise_total,
         "snr_db": snr_total,
@@ -313,6 +373,12 @@ def read_index():
 
 @router.get("/api/panel")
 def get_panel():
+    services = {
+        "readsb": get_service_status("readsb"),
+        "tar1090": get_service_status("tar1090"),
+        "graphs1090": get_service_status("graphs1090")
+    }
+
     return {
         "system": {
             "cpu_usage": psutil.cpu_percent(interval=None),
@@ -320,8 +386,9 @@ def get_panel():
             "ram_usage": psutil.virtual_memory().percent
         },
         "service": {
-            "readsb_active": is_service_active("readsb")
+            "readsb_active": services["readsb"] == "running"
         },
+        "services": services,
         "receiver": parse_receiver(),
         "aircraft": parse_aircraft()
     }

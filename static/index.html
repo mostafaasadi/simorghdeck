@@ -86,11 +86,11 @@
             <article class="metric-card">
                 <span class="metric-label">
                     <i data-lucide="signal"></i>
-                    <span>SNR 1m</span>
+                    <span>SNR 5m</span>
                     <button class="info-tip" type="button" aria-label="SNR information">
                         <i data-lucide="info"></i>
                         <span class="info-fallback">?</span>
-                        <span class="tip" role="tooltip">Signal-to-Noise Ratio in the last minute.</span>
+                        <span class="tip" role="tooltip">Signal-to-Noise Ratio averaged over the last 5 minutes.</span>
                     </button>
                 </span>
                 <strong id="snrMetric">N/A</strong>
@@ -289,6 +289,42 @@
                     <strong id="ramUsage">N/A</strong>
                     <canvas class="mini-sparkline" id="ramSparkline"></canvas>
                 </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>readsb</span>
+                        <button class="info-tip" type="button" aria-label="readsb service status information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">Systemd service status for the readsb decoder.</span>
+                        </button>
+                    </span>
+                    <strong id="svcReadsb">Unknown</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>tar1090</span>
+                        <button class="info-tip" type="button" aria-label="tar1090 service status information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">Web availability status for the tar1090 map.</span>
+                        </button>
+                    </span>
+                    <strong id="svcTar1090">Unknown</strong>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
+                        <span>graphs1090</span>
+                        <button class="info-tip" type="button" aria-label="graphs1090 service status information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">Service or web availability status for graphs1090.</span>
+                        </button>
+                    </span>
+                    <strong id="svcGraphs1090">Unknown</strong>
+                </div>
             </div>
         </section>
 
@@ -296,7 +332,7 @@
             <div class="section-head">
                 <div class="section-title">
                     <i data-lucide="trending-up"></i>
-                    <h2>SNR 1m</h2>
+                    <h2>SNR 5m</h2>
                 </div>
             </div>
             <div class="chart-values">

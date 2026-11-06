@@ -314,6 +314,48 @@ body {
     letter-spacing: 0.04em;
 }
 
+.aircraft-meta {
+    color: #94a3b8;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+}
+
+.ident-link {
+    color: inherit;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    max-width: 100%;
+    border-radius: 6px;
+}
+
+.ident-link .link-icon {
+    width: 12px;
+    height: 12px;
+    flex: 0 0 auto;
+    opacity: 0.45;
+    transition: opacity 0.12s ease;
+}
+
+.ident-link:hover,
+.ident-link:focus-visible {
+    color: #38bdf8;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.ident-link:hover .link-icon,
+.ident-link:focus-visible .link-icon {
+    opacity: 1;
+}
+
+.ident-link:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+}
+
 .badge-row {
     display: flex;
     flex-wrap: wrap;

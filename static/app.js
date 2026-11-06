@@ -14,6 +14,10 @@ const MAX_AIRCRAFT_POINTS = 30;
 
 const SPARK_GLYPHS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
 
+const TAR1090_BASE_URL = '/tar1090/';
+
+const EXTERNAL_LINK_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="link-icon"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
+
 document.addEventListener('DOMContentLoaded', () => {
     bindServiceButtons();
     bindInfoTips();
@@ -40,9 +44,10 @@ async function refresh() {
 
         renderSystem(data.system);
         renderService(data.service);
+        renderServices(data.services);
         renderReceiver(data.receiver, data.aircraft);
         renderAircraft(data.aircraft || {});
-        updateChart(data.receiver ? data.receiver.snr_db_1m : null, data.receiver ? data.receiver.stats_now : null);
+        updateChart(data.receiver ? data.receiver.snr_db_5m : null, data.receiver ? data.receiver.stats_now : null);
     } catch (error) {
         console.error(error);
     }
@@ -262,8 +267,8 @@ function sparklineBarsHtml(points, color) {
     }
 
     const last8 = points.slice(-8);
-    const min = Math.min(...validPoints);
-    const max = Math.max(...validPoints);
+    const min = Math.min(...last8);
+    const max = Math.max(...last8);
     const range = max - min || 1;
 
     const bars = last8.map(point => {
@@ -297,6 +302,40 @@ function renderService(service) {
     }
 }
 
+function renderServices(services) {
+    if (!services) {
+        return;
+    }
+
+    setServiceStatus('svcReadsb', services.readsb);
+    setServiceStatus('svcTar1090', services.tar1090);
+    setServiceStatus('svcGraphs1090', services.graphs1090);
+}
+
+function setServiceStatus(id, status) {
+    const el = document.getElementById(id);
+
+    if (!el) {
+        return;
+    }
+
+    el.classList.remove('text-success', 'text-warning', 'text-danger');
+
+    if (status === 'running') {
+        el.textContent = 'Running';
+        el.classList.add('text-success');
+    } else if (status === 'stopped') {
+        el.textContent = 'Stopped';
+        el.classList.add('text-danger');
+    } else if (status === 'failed') {
+        el.textContent = 'Failed';
+        el.classList.add('text-danger');
+    } else {
+        el.textContent = 'Unknown';
+        el.classList.add('text-warning');
+    }
+}
+
 function renderReceiver(receiver, aircraft) {
     if (!receiver) {
         return;
@@ -304,12 +343,12 @@ function renderReceiver(receiver, aircraft) {
 
     setText('gainDb', formatValue(receiver.gain_db, 'dB'));
     setText('ppmValue', formatValue(receiver.estimated_ppm, 'ppm'));
-    setText('snrMetric', formatValue(receiver.snr_db_1m, 'dB'));
-    setSnrColor('snrMetric', receiver.snr_db_1m);
+    setText('snrMetric', formatValue(receiver.snr_db_5m, 'dB'));
+    setSnrColor('snrMetric', receiver.snr_db_5m);
 
-    setText('snrCurrent', formatValue(receiver.snr_db_1m, 'dB'));
-    setText('signalCurrent', formatValue(receiver.signal_db_1m, 'dB'));
-    setText('noiseCurrent', formatValue(receiver.noise_db_1m, 'dB'));
+    setText('snrCurrent', formatValue(receiver.snr_db_5m, 'dB'));
+    setText('signalCurrent', formatValue(receiver.signal_db_5m, 'dB'));
+    setText('noiseCurrent', formatValue(receiver.noise_db_5m, 'dB'));
 
     setText('uptime', formatDuration(receiver.uptime_seconds));
 
@@ -330,6 +369,7 @@ function renderReceiver(receiver, aircraft) {
     } else {
         setText('maxRange', 'N/A');
     }
+
     setText('lastTraffic', receiver.last_traffic || 'N/A');
 }
 
@@ -378,9 +418,21 @@ function infoTip(tooltipText) {
     `;
 }
 
+function isValidIcaoHex(value) {
+    return typeof value === 'string' && /^[0-9a-f]{6}$/i.test(value);
+}
+
+function tar1090IcaoUrl(value) {
+    if (!isValidIcaoHex(value)) {
+        return null;
+    }
+    return TAR1090_BASE_URL + '?icao=' + value.toLowerCase();
+}
+
 function aircraftCard(ac) {
     const title = ac.flight || ac.hex || 'UNKNOWN';
     const hex = ac.hex;
+    const icaoUrl = tar1090IcaoUrl(hex);
     const positionBadge = ac.has_position
         ? '<span class="badge info">POS</span>'
         : '<span class="badge muted">NO POS</span>';
@@ -393,12 +445,32 @@ function aircraftCard(ac) {
 
     const history = aircraftHistory.get(hex) || { alt: [], spd: [], vert: [], rssi: [] };
 
+    const metaParts = [];
+    if (ac.registration) {
+        metaParts.push(escapeHtml(ac.registration));
+    }
+    if (ac.aircraft_type) {
+        metaParts.push(escapeHtml(ac.aircraft_type));
+    }
+    const metaLine = metaParts.length
+        ? `<span class="aircraft-meta">${metaParts.join(' · ')}</span>`
+        : '';
+
+    const flightNode = icaoUrl
+        ? `<a class="flight ident-link" href="${icaoUrl}" target="_blank" rel="noopener">${escapeHtml(title)}${EXTERNAL_LINK_ICON}</a>`
+        : `<span class="flight">${escapeHtml(title)}</span>`;
+
+    const hexNode = icaoUrl
+        ? `<a class="hex ident-link" href="${icaoUrl}" target="_blank" rel="noopener">${escapeHtml(hex)}</a>`
+        : `<span class="hex">${escapeHtml(hex || '')}</span>`;
+
     return `
         <article class="${cardClass}">
             <div class="aircraft-top">
                 <div class="ident">
-                    <span class="flight">${escapeHtml(title)}</span>
-                    <span class="hex">${escapeHtml(ac.hex || '')}</span>
+                    ${flightNode}
+                    ${hexNode}
+                    ${metaLine}
                 </div>
                 <div class="badge-row">
                     ${positionBadge}
