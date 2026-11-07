@@ -4,24 +4,11 @@ Mobile-first RTL-SDR ADS-B dashboard for readsb, tar1090, and graphs1090.
 
 ## Features
 
-- Live RTL-SDR receiver stats (Gain, PPM, SNR 5m, Dropped/Lost samples)
-- Active aircraft cards with telemetry (Altitude, Speed, Heading, Vertical Rate, RSSI)
-- Aircraft Type and Registration display (when available)
-- Mini bar sparklines for ALT/SPD/VERT/RSSI showing recent trends
-- Clickable Callsign/Hex links directly to the tar1090 map view
-- Advanced session statistics (hourly rates, track completion, max range)
-- Last Traffic timestamp tracking (e.g., "5 min ago")
-- Live SNR 5m trend chart
-- System health monitoring with mini line sparklines (CPU, Temp, RAM)
-- RTL-SDR USB dongle detection and connection status
-- Service status monitoring for decoder (readsb/dump1090-fa), tar1090, and graphs1090
-- Auto-detection of the active decoder service
-- readsb service control (Start / Stop / Restart)
-- Info tooltips for all metrics and fields
-- Quick links to tar1090, pTracks, Heatmap, Replay, and Graphs1090
-- Fully local frontend assets (No internet required after setup)
-- Mobile-optimized responsive UI
-- External configuration via config.json
+- Mobile-first RTL-SDR ADS-B dashboard with live aircraft cards and one-click tar1090 integration
+- Trend sparklines for system health and per-aircraft metrics
+- Rolling SNR chart with service status monitoring for readsb, tar1090, and graphs1090
+- Session statistics and smart Last Traffic tracking
+- Fully local frontend with readsb service control
 
 ## Prerequisites
 
