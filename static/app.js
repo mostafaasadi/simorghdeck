@@ -19,8 +19,14 @@ let tar1090BaseUrl = TAR1090_BASE_URL;
 
 const EXTERNAL_LINK_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="link-icon"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
 
+const RESTART_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>';
+
+const STOP_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
+
+const renderedActions = {};
+
 document.addEventListener('DOMContentLoaded', () => {
-    bindServiceButtons();
+    bindServiceControls();
     bindInfoTips();
     initChart();
     refresh();
@@ -48,7 +54,6 @@ async function refresh() {
         }
 
         renderSystem(data.system);
-        renderService(data.service);
         renderServices(data.services, data.service ? data.service.name : null);
         renderRtlSdr(data.receiver ? data.receiver.rtl_sdr : null);
         renderReceiver(data.receiver, data.aircraft);
@@ -289,45 +294,71 @@ function sparklineBarsHtml(points, color) {
     return `<div class="sparkline-bars">${bars}</div>`;
 }
 
-function renderService(service) {
-    if (!service) {
-        return;
-    }
-
-    const title = document.getElementById('decoderServiceTitle');
-    if (title && service.name) {
-        title.textContent = service.name.charAt(0).toUpperCase() + service.name.slice(1) + ' Service';
-    }
-
-    const active = Boolean(service.active);
-    const badge = document.getElementById('serviceStatus');
-    const dot = document.getElementById('serviceDot');
-
-    if (badge) {
-        badge.textContent = active ? 'Active' : 'Inactive';
-        badge.className = 'badge ' + (active ? 'active' : 'inactive');
-    }
-
-    if (dot) {
-        dot.className = 'status-dot ' + (active ? 'active' : 'inactive');
-    }
-}
-
 function renderServices(services, decoderName) {
     if (!services) {
         return;
     }
 
-    if (decoderName) {
+    if (decoderName && services[decoderName]) {
+        const entry = services[decoderName];
         const nameEl = document.getElementById('svcDecoderName');
+        const dot = document.getElementById('serviceDot');
+
         if (nameEl) {
             nameEl.textContent = decoderName;
         }
-        setServiceStatus('svcDecoderStatus', services[decoderName]);
+
+        if (dot) {
+            dot.className = 'status-dot ' + (entry.status === 'running' ? 'active' : 'inactive');
+        }
+
+        setServiceStatus('svcDecoderStatus', entry.status);
+        renderServiceActions('svcDecoderActions', entry.controllable ? decoderName : null);
     }
 
-    setServiceStatus('svcTar1090', services.tar1090);
-    setServiceStatus('svcGraphs1090', services.graphs1090);
+    renderServiceEntry('tar1090', services.tar1090, 'svcTar1090', 'svcTar1090Actions');
+    renderServiceEntry('graphs1090', services.graphs1090, 'svcGraphs1090', 'svcGraphs1090Actions');
+}
+
+function renderServiceEntry(name, entry, statusId, actionsId) {
+    if (!entry) {
+        return;
+    }
+
+    setServiceStatus(statusId, entry.status);
+    renderServiceActions(actionsId, entry.controllable ? name : null);
+}
+
+function renderServiceActions(containerId, serviceName) {
+    const el = document.getElementById(containerId);
+
+    if (!el) {
+        return;
+    }
+
+    const target = serviceName || null;
+
+    if (renderedActions[containerId] === target) {
+        return;
+    }
+
+    renderedActions[containerId] = target;
+    el.innerHTML = target ? serviceActionsHtml(target) : '';
+}
+
+function serviceActionsHtml(name) {
+    const safeName = escapeHtml(name);
+
+    return `
+        <button class="btn btn-warning btn-sm" data-service-name="${safeName}" data-service-action="restart">
+            ${RESTART_ICON}
+            <span>Restart</span>
+        </button>
+        <button class="btn btn-danger btn-sm" data-service-name="${safeName}" data-service-action="stop">
+            ${STOP_ICON}
+            <span>Stop</span>
+        </button>
+    `;
 }
 
 function setServiceStatus(id, status) {
@@ -624,15 +655,23 @@ function verticalClass(value) {
     return '';
 }
 
-function bindServiceButtons() {
-    document.querySelectorAll('[data-service-action]').forEach(button => {
-        button.addEventListener('click', () => {
-            controlService(button.getAttribute('data-service-action'));
-        });
+function bindServiceControls() {
+    document.addEventListener('click', event => {
+        const button = event.target.closest('[data-service-action]');
+
+        if (!button || button.disabled) {
+            return;
+        }
+
+        controlService(button.getAttribute('data-service-name'), button.getAttribute('data-service-action'));
     });
 }
 
-async function controlService(action) {
+async function controlService(name, action) {
+    if (!name || !action) {
+        return;
+    }
+
     const buttons = document.querySelectorAll('[data-service-action]');
 
     buttons.forEach(button => {
@@ -640,7 +679,7 @@ async function controlService(action) {
     });
 
     try {
-        const response = await fetch(`/deck/api/service/${action}`, {
+        const response = await fetch(`/deck/api/service/${encodeURIComponent(name)}/${action}`, {
             method: 'POST'
         });
 

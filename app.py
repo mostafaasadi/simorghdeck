@@ -18,6 +18,7 @@ DEFAULT_CONFIG = {
     "decoder_service": "auto",
     "decoder_candidates": ["readsb", "dump1090-fa"],
     "monitored_services": ["tar1090", "graphs1090"],
+    "controllable_services": ["tar1090", "graphs1090"],
     "service_probe_urls": {
         "tar1090": "http://127.0.0.1/tar1090/",
         "graphs1090": "http://127.0.0.1/graphs1090/"
@@ -61,6 +62,7 @@ _config = None
 _rtlsdr_ids = None
 _json_cache = {}
 _service_status_cache = {}
+_unit_cache = {}
 _decoder_service_cache = {
     "time": 0.0,
     "name": None
@@ -201,6 +203,19 @@ def systemd_unit_state(name):
         return result.stdout.strip()
     except Exception:
         return None
+
+
+def unit_exists(name):
+    now = time.monotonic()
+    cached = _unit_cache.get(name)
+    if cached and (now - cached[0]) < 60:
+        return cached[1]
+
+    state = systemd_unit_state(name)
+    exists = state is not None and state != "unknown"
+
+    _unit_cache[name] = (now, exists)
+    return exists
 
 
 def get_decoder_service():
@@ -538,10 +553,20 @@ def get_panel():
     config = load_config()
     decoder_name = get_decoder_name()
 
-    services = {decoder_name: get_service_status(decoder_name)}
+    services = {
+        decoder_name: {
+            "status": get_service_status(decoder_name),
+            "controllable": unit_exists(decoder_name)
+        }
+    }
+
     for name in config.get("monitored_services", []):
-        if name not in services:
-            services[name] = get_service_status(name)
+        if name in services:
+            continue
+        services[name] = {
+            "status": get_service_status(name),
+            "controllable": name in config.get("controllable_services", []) and unit_exists(name)
+        }
 
     return {
         "system": {
@@ -551,7 +576,7 @@ def get_panel():
         },
         "service": {
             "name": decoder_name,
-            "active": services[decoder_name] == "running"
+            "active": services[decoder_name]["status"] == "running"
         },
         "services": services,
         "links": {
@@ -562,22 +587,28 @@ def get_panel():
     }
 
 
-@router.post("/api/service/{action}")
-def control_service(action: str):
-    if action not in ["start", "stop", "restart"]:
+@router.post("/api/service/{name}/{action}")
+def control_service(name: str, action: str):
+    if action not in ["stop", "restart"]:
         raise HTTPException(status_code=400, detail="Invalid action")
 
-    target = get_decoder_name()
+    config = load_config()
+    allowed = set(config.get("controllable_services", []))
+    allowed.add(get_decoder_name())
+
+    if name not in allowed or not unit_exists(name):
+        raise HTTPException(status_code=400, detail="Service is not controllable")
 
     try:
         subprocess.run(
-            ["sudo", "systemctl", action, target],
+            ["sudo", "systemctl", action, name],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
         return {
             "status": "success",
+            "service": name,
             "action": action
         }
     except subprocess.CalledProcessError as error:

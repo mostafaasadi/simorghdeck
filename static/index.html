@@ -44,31 +44,6 @@
             </div>
         </header>
 
-        <section class="card service-card">
-            <div class="service-info">
-                <span class="status-dot" id="serviceDot"></span>
-                <div>
-                    <h2 id="decoderServiceTitle">Readsb Service</h2>
-                    <span class="badge inactive" id="serviceStatus">Checking</span>
-                </div>
-            </div>
-
-            <div class="service-actions">
-                <button class="btn btn-success" data-service-action="start">
-                    <i data-lucide="play"></i>
-                    <span>Start</span>
-                </button>
-                <button class="btn btn-danger" data-service-action="stop">
-                    <i data-lucide="square"></i>
-                    <span>Stop</span>
-                </button>
-                <button class="btn btn-warning" data-service-action="restart">
-                    <i data-lucide="rotate-cw"></i>
-                    <span>Restart</span>
-                </button>
-            </div>
-        </section>
-
         <section class="metrics-grid">
             <article class="metric-card">
                 <span class="metric-label">
@@ -250,7 +225,7 @@
                     <h2>Receiver Health</h2>
                 </div>
             </div>
-            <div class="stats-grid">
+            <div class="stats-grid health-grid">
                 <div class="stat">
                     <span class="stat-label">
                         <span>RTL-SDR</span>
@@ -302,17 +277,33 @@
                     <strong id="ramUsage">N/A</strong>
                     <canvas class="mini-sparkline" id="ramSparkline"></canvas>
                 </div>
+            </div>
+        </section>
 
+        <section class="card">
+            <div class="section-head">
+                <div class="section-title">
+                    <i data-lucide="server"></i>
+                    <h2>Services</h2>
+                </div>
+            </div>
+            <div class="services-grid">
                 <div class="stat">
                     <span class="stat-label">
-                        <span id="svcDecoderName">readsb</span>
+                        <span class="label-group">
+                            <span class="status-dot" id="serviceDot"></span>
+                            <span id="svcDecoderName">readsb</span>
+                        </span>
                         <button class="info-tip" type="button" aria-label="Decoder service status information">
                             <i data-lucide="info"></i>
                             <span class="info-fallback">?</span>
-                            <span class="tip" role="tooltip">Systemd service status for the ADS-B decoder.</span>
+                            <span class="tip" role="tooltip">Systemd service status for the ADS-B decoder. Restart and Stop buttons control this service.</span>
                         </button>
                     </span>
-                    <strong id="svcDecoderStatus">Unknown</strong>
+                    <div class="stat-footer">
+                        <strong id="svcDecoderStatus">Unknown</strong>
+                        <div class="service-actions" id="svcDecoderActions"></div>
+                    </div>
                 </div>
 
                 <div class="stat">
@@ -321,10 +312,13 @@
                         <button class="info-tip" type="button" aria-label="tar1090 service status information">
                             <i data-lucide="info"></i>
                             <span class="info-fallback">?</span>
-                            <span class="tip" role="tooltip">Web availability status for the tar1090 map.</span>
+                            <span class="tip" role="tooltip">Systemd service status for tar1090 (JSON history compressor). Restart and Stop buttons control this service.</span>
                         </button>
                     </span>
-                    <strong id="svcTar1090">Unknown</strong>
+                    <div class="stat-footer">
+                        <strong id="svcTar1090">Unknown</strong>
+                        <div class="service-actions" id="svcTar1090Actions"></div>
+                    </div>
                 </div>
 
                 <div class="stat">
@@ -333,10 +327,13 @@
                         <button class="info-tip" type="button" aria-label="graphs1090 service status information">
                             <i data-lucide="info"></i>
                             <span class="info-fallback">?</span>
-                            <span class="tip" role="tooltip">Service or web availability status for graphs1090.</span>
+                            <span class="tip" role="tooltip">Systemd service status for graphs1090. Restart and Stop buttons control this service.</span>
                         </button>
                     </span>
-                    <strong id="svcGraphs1090">Unknown</strong>
+                    <div class="stat-footer">
+                        <strong id="svcGraphs1090">Unknown</strong>
+                        <div class="service-actions" id="svcGraphs1090Actions"></div>
+                    </div>
                 </div>
             </div>
         </section>
