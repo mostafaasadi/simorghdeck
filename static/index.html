@@ -253,6 +253,19 @@
             <div class="stats-grid">
                 <div class="stat">
                     <span class="stat-label">
+                        <span>RTL-SDR</span>
+                        <button class="info-tip" type="button" aria-label="RTL-SDR connection information">
+                            <i data-lucide="info"></i>
+                            <span class="info-fallback">?</span>
+                            <span class="tip" role="tooltip">RTL-SDR dongle detection on the USB bus.</span>
+                        </button>
+                    </span>
+                    <strong id="rtlSdrStatus">Unknown</strong>
+                    <span class="aircraft-meta hidden" id="rtlSdrId"></span>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">
                         <span>CPU</span>
                         <button class="info-tip" type="button" aria-label="CPU information">
                             <i data-lucide="info"></i>

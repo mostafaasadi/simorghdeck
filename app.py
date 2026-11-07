@@ -29,8 +29,41 @@ SERVICE_PROBE_URLS = {
 
 SERVICE_STATUS_TTL = 15
 
+USB_DEVICES_DIR = "/sys/bus/usb/devices"
+
+RTLSDR_USB_IDS = {
+    ("0bda", "2838"),
+    ("0bda", "2832"),
+    ("0ccd", "00d3"),
+    ("0ccd", "00e0"),
+    ("0458", "707f"),
+    ("1554", "5020"),
+    ("1554", "5021"),
+    ("1b80", "d393"),
+    ("1b80", "d394"),
+    ("1b80", "d395"),
+    ("1b80", "d397"),
+    ("1b80", "d398"),
+    ("1b80", "d39d"),
+    ("1b80", "d3a4"),
+    ("1b80", "d803"),
+    ("1d19", "1101"),
+    ("1d19", "1102"),
+    ("1d19", "1103"),
+    ("1f4d", "b803"),
+    ("1f4d", "c803"),
+}
+
+RTLSDR_CACHE_TTL = 10
+
 _json_cache = {}
 _service_status_cache = {}
+
+_rtlsdr_cache = {
+    "time": 0.0,
+    "usb_id": None,
+    "scan_ok": False
+}
 
 _last_traffic_timestamp = None
 
@@ -108,6 +141,38 @@ def get_cpu_temp():
             return round(float(handle.read()) / 1000.0, 1)
     except Exception:
         return None
+
+
+def find_rtlsdr_usb():
+    now = time.monotonic()
+    if (now - _rtlsdr_cache["time"]) < RTLSDR_CACHE_TTL:
+        return _rtlsdr_cache["usb_id"], _rtlsdr_cache["scan_ok"]
+
+    usb_id = None
+    scan_ok = False
+
+    try:
+        scan_ok = True
+        for entry in os.listdir(USB_DEVICES_DIR):
+            vendor_path = os.path.join(USB_DEVICES_DIR, entry, "idVendor")
+            product_path = os.path.join(USB_DEVICES_DIR, entry, "idProduct")
+            if not os.path.isfile(vendor_path) or not os.path.isfile(product_path):
+                continue
+            with open(vendor_path, "r") as handle:
+                vendor = handle.read().strip().lower()
+            with open(product_path, "r") as handle:
+                product = handle.read().strip().lower()
+            if (vendor, product) in RTLSDR_USB_IDS:
+                usb_id = f"{vendor}:{product}"
+                break
+    except Exception:
+        scan_ok = False
+        usb_id = None
+
+    _rtlsdr_cache["time"] = now
+    _rtlsdr_cache["usb_id"] = usb_id
+    _rtlsdr_cache["scan_ok"] = scan_ok
+    return usb_id, scan_ok
 
 
 def probe_http(url):
@@ -263,6 +328,16 @@ def parse_receiver():
     tracks_total = total.get("tracks", {}) if isinstance(total.get("tracks"), dict) else {}
 
     local_5 = last5.get("local", {}) if isinstance(last5.get("local"), dict) else {}
+
+    usb_id, scan_ok = find_rtlsdr_usb()
+
+    if usb_id:
+        rtl_status = "connected"
+    elif scan_ok:
+        rtl_status = "missing"
+    else:
+        rtl_status = "unknown"
+
     signal_5m = to_number(local_5.get("signal"))
     noise_5m = to_number(local_5.get("noise"))
     samples_5m = to_int(local_5.get("samples_processed"))
@@ -362,6 +437,10 @@ def parse_receiver():
         "samples_dropped": to_int(local_total.get("samples_dropped"), 0),
         "samples_lost": to_int(local_total.get("samples_lost"), 0),
         "positions_1m": positions_1m,
+        "rtl_sdr": {
+            "status": rtl_status,
+            "usb_id": usb_id
+        },
         "last_traffic": last_traffic
     }
 

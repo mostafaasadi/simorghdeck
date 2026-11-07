@@ -45,6 +45,7 @@ async function refresh() {
         renderSystem(data.system);
         renderService(data.service);
         renderServices(data.services);
+        renderRtlSdr(data.receiver ? data.receiver.rtl_sdr : null);
         renderReceiver(data.receiver, data.aircraft);
         renderAircraft(data.aircraft || {});
         updateChart(data.receiver ? data.receiver.snr_db_5m : null, data.receiver ? data.receiver.stats_now : null);
@@ -333,6 +334,38 @@ function setServiceStatus(id, status) {
     } else {
         el.textContent = 'Unknown';
         el.classList.add('text-warning');
+    }
+}
+
+function renderRtlSdr(rtl) {
+    const el = document.getElementById('rtlSdrStatus');
+    const idEl = document.getElementById('rtlSdrId');
+
+    if (!el || !rtl) {
+        return;
+    }
+
+    el.classList.remove('text-success', 'text-warning', 'text-danger');
+
+    if (rtl.status === 'connected') {
+        el.textContent = 'Connected';
+        el.classList.add('text-success');
+    } else if (rtl.status === 'missing') {
+        el.textContent = 'Not Detected';
+        el.classList.add('text-danger');
+    } else {
+        el.textContent = 'Unknown';
+        el.classList.add('text-warning');
+    }
+
+    if (idEl) {
+        if (rtl.usb_id) {
+            idEl.textContent = rtl.usb_id;
+            idEl.classList.remove('hidden');
+        } else {
+            idEl.textContent = '';
+            idEl.classList.add('hidden');
+        }
     }
 }
 
