@@ -394,13 +394,7 @@ def parse_aircraft():
             "emergency": squawk in {"7500", "7600", "7700"}
         })
 
-    items.sort(
-        key=lambda item: (
-            item["seen_s"] if item["seen_s"] is not None else 999,
-            -(item["rssi_db"] if item["rssi_db"] is not None else -999)
-        )
-    )
-
+    items.sort(key=lambda item: item["hex"])
     with_pos = sum(1 for item in items if item["has_position"])
 
     return {
