@@ -271,23 +271,30 @@ function cleanupAircraftHistory(activeHexes) {
 }
 
 function sparklineBarsHtml(points, color) {
-    const validPoints = points.filter(p => p !== null && p !== undefined);
+    const last8 = points.slice(-8);
+    const validInWindow = last8.filter(p => p !== null && p !== undefined);
 
-    if (validPoints.length < 2) {
+    if (validInWindow.length === 0) {
         return '';
     }
 
-    const last8 = points.slice(-8);
-    const min = Math.min(...last8);
-    const max = Math.max(...last8);
-    const range = max - min || 1;
+    const min = Math.min(...validInWindow);
+    const max = Math.max(...validInWindow);
+    const range = max - min;
 
     const bars = last8.map(point => {
         if (point === null || point === undefined) {
             return `<span style="color: ${color}; opacity: 0.25">·</span>`;
         }
-        const normalized = (point - min) / range;
-        const index = Math.min(Math.floor(normalized * SPARK_GLYPHS.length), SPARK_GLYPHS.length - 1);
+
+        let index;
+        if (range === 0) {
+            index = 6;
+        } else {
+            const normalized = (point - min) / range;
+            index = Math.min(Math.floor(normalized * SPARK_GLYPHS.length), SPARK_GLYPHS.length - 1);
+        }
+
         return `<span style="color: ${color}">${SPARK_GLYPHS[index]}</span>`;
     }).join('');
 
