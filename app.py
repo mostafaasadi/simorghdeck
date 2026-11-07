@@ -9,56 +9,62 @@ from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-app = FastAPI(title="SimorghDeck API")
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH = os.path.join(BASE_DIR, "config.json")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
-os.makedirs(STATIC_DIR, exist_ok=True)
+
+DEFAULT_CONFIG = {
+    "runtime_dirs": ["/run/readsb", "/run/dump1090-fa"],
+    "decoder_service": "auto",
+    "decoder_candidates": ["readsb", "dump1090-fa"],
+    "monitored_services": ["tar1090", "graphs1090"],
+    "service_probe_urls": {
+        "tar1090": "http://127.0.0.1/tar1090/",
+        "graphs1090": "http://127.0.0.1/graphs1090/"
+    },
+    "tar1090_base_url": "/tar1090/",
+    "service_status_ttl": 15,
+    "rtlsdr_cache_ttl": 10,
+    "usb_devices_dir": "/sys/bus/usb/devices",
+    "thermal_zone_path": "/sys/class/thermal/thermal_zone0/temp",
+    "rtlsdr_usb_ids": [
+        "0bda:2838",
+        "0bda:2832",
+        "0ccd:00d3",
+        "0ccd:00e0",
+        "0458:707f",
+        "1554:5020",
+        "1554:5021",
+        "1b80:d393",
+        "1b80:d394",
+        "1b80:d395",
+        "1b80:d397",
+        "1b80:d398",
+        "1b80:d39d",
+        "1b80:d3a4",
+        "1b80:d803",
+        "1d19:1101",
+        "1d19:1102",
+        "1d19:1103",
+        "1f4d:b803",
+        "1f4d:c803"
+    ]
+}
+
+app = FastAPI(title="SimorghDeck API")
 
 router = APIRouter(prefix="/deck")
 
-RUNTIME_DIRS = [
-    "/run/readsb",
-    "/run/dump1090-fa"
-]
+os.makedirs(STATIC_DIR, exist_ok=True)
 
-SERVICE_PROBE_URLS = {
-    "tar1090": "http://127.0.0.1/tar1090/",
-    "graphs1090": "http://127.0.0.1/graphs1090/"
-}
-
-SERVICE_STATUS_TTL = 15
-
-USB_DEVICES_DIR = "/sys/bus/usb/devices"
-
-RTLSDR_USB_IDS = {
-    ("0bda", "2838"),
-    ("0bda", "2832"),
-    ("0ccd", "00d3"),
-    ("0ccd", "00e0"),
-    ("0458", "707f"),
-    ("1554", "5020"),
-    ("1554", "5021"),
-    ("1b80", "d393"),
-    ("1b80", "d394"),
-    ("1b80", "d395"),
-    ("1b80", "d397"),
-    ("1b80", "d398"),
-    ("1b80", "d39d"),
-    ("1b80", "d3a4"),
-    ("1b80", "d803"),
-    ("1d19", "1101"),
-    ("1d19", "1102"),
-    ("1d19", "1103"),
-    ("1f4d", "b803"),
-    ("1f4d", "c803"),
-}
-
-RTLSDR_CACHE_TTL = 10
-
+_config = None
+_rtlsdr_ids = None
 _json_cache = {}
 _service_status_cache = {}
-
+_decoder_service_cache = {
+    "time": 0.0,
+    "name": None
+}
 _rtlsdr_cache = {
     "time": 0.0,
     "usb_id": None,
@@ -68,6 +74,46 @@ _rtlsdr_cache = {
 _last_traffic_timestamp = None
 
 psutil.cpu_percent(interval=None)
+
+
+def load_config():
+    global _config
+    if _config is not None:
+        return _config
+
+    merged = dict(DEFAULT_CONFIG)
+
+    try:
+        with open(CONFIG_PATH, "r") as handle:
+            user = json.load(handle)
+        if isinstance(user, dict):
+            for key, value in user.items():
+                if key == "service_probe_urls" and isinstance(value, dict):
+                    base = dict(DEFAULT_CONFIG["service_probe_urls"])
+                    base.update(value)
+                    merged[key] = base
+                else:
+                    merged[key] = value
+    except Exception:
+        pass
+
+    _config = merged
+    return _config
+
+
+def get_rtlsdr_usb_ids():
+    global _rtlsdr_ids
+    if _rtlsdr_ids is not None:
+        return _rtlsdr_ids
+
+    ids = set()
+    for item in load_config().get("rtlsdr_usb_ids", []):
+        parts = str(item).lower().split(":")
+        if len(parts) == 2:
+            ids.add((parts[0].strip(), parts[1].strip()))
+
+    _rtlsdr_ids = ids
+    return _rtlsdr_ids
 
 
 def clean_keys(value):
@@ -100,7 +146,7 @@ def to_int(value, default=None):
 
 
 def find_runtime_file(name):
-    for directory in RUNTIME_DIRS:
+    for directory in load_config().get("runtime_dirs", []):
         path = os.path.join(directory, name)
         if os.path.exists(path):
             return path
@@ -137,32 +183,74 @@ def load_runtime_json(name):
 
 def get_cpu_temp():
     try:
-        with open("/sys/class/thermal/thermal_zone0/temp", "r") as handle:
+        with open(load_config().get("thermal_zone_path"), "r") as handle:
             return round(float(handle.read()) / 1000.0, 1)
     except Exception:
         return None
 
 
-def find_rtlsdr_usb():
+def systemd_unit_state(name):
+    try:
+        result = subprocess.run(
+            ["systemctl", "is-active", name],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=5
+        )
+        return result.stdout.strip()
+    except Exception:
+        return None
+
+
+def get_decoder_service():
+    configured = load_config().get("decoder_service", "auto")
+    if configured and configured != "auto":
+        return configured
+
     now = time.monotonic()
-    if (now - _rtlsdr_cache["time"]) < RTLSDR_CACHE_TTL:
+    if _decoder_service_cache["name"] and (now - _decoder_service_cache["time"]) < 60:
+        return _decoder_service_cache["name"]
+
+    detected = None
+    for candidate in load_config().get("decoder_candidates", []):
+        state = systemd_unit_state(candidate)
+        if state is not None and state != "unknown":
+            detected = candidate
+            break
+
+    _decoder_service_cache["time"] = now
+    _decoder_service_cache["name"] = detected
+    return detected
+
+
+def get_decoder_name():
+    return get_decoder_service() or load_config().get("decoder_candidates", ["readsb"])[0]
+
+
+def find_rtlsdr_usb():
+    ttl = load_config().get("rtlsdr_cache_ttl", 10)
+    now = time.monotonic()
+    if (now - _rtlsdr_cache["time"]) < ttl:
         return _rtlsdr_cache["usb_id"], _rtlsdr_cache["scan_ok"]
 
     usb_id = None
     scan_ok = False
+    known_ids = get_rtlsdr_usb_ids()
 
     try:
         scan_ok = True
-        for entry in os.listdir(USB_DEVICES_DIR):
-            vendor_path = os.path.join(USB_DEVICES_DIR, entry, "idVendor")
-            product_path = os.path.join(USB_DEVICES_DIR, entry, "idProduct")
+        devices_dir = load_config().get("usb_devices_dir")
+        for entry in os.listdir(devices_dir):
+            vendor_path = os.path.join(devices_dir, entry, "idVendor")
+            product_path = os.path.join(devices_dir, entry, "idProduct")
             if not os.path.isfile(vendor_path) or not os.path.isfile(product_path):
                 continue
             with open(vendor_path, "r") as handle:
                 vendor = handle.read().strip().lower()
             with open(product_path, "r") as handle:
                 product = handle.read().strip().lower()
-            if (vendor, product) in RTLSDR_USB_IDS:
+            if (vendor, product) in known_ids:
                 usb_id = f"{vendor}:{product}"
                 break
     except Exception:
@@ -187,18 +275,10 @@ def probe_http(url):
 
 
 def probe_service(name):
-    try:
-        result = subprocess.run(
-            ["systemctl", "is-active", name],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=5
-        )
-        state = result.stdout.strip()
-    except Exception:
-        return "unknown"
+    state = systemd_unit_state(name)
 
+    if state is None:
+        return "unknown"
     if state == "active":
         return "running"
     if state == "failed":
@@ -208,7 +288,7 @@ def probe_service(name):
     if state == "activating":
         return "unknown"
 
-    url = SERVICE_PROBE_URLS.get(name)
+    url = load_config().get("service_probe_urls", {}).get(name)
     if not url:
         return "unknown"
 
@@ -221,9 +301,10 @@ def probe_service(name):
 
 
 def get_service_status(name):
+    ttl = load_config().get("service_status_ttl", 15)
     now = time.monotonic()
     cached = _service_status_cache.get(name)
-    if cached and (now - cached[0]) < SERVICE_STATUS_TTL:
+    if cached and (now - cached[0]) < ttl:
         return cached[1]
 
     status = probe_service(name)
@@ -405,6 +486,8 @@ def parse_receiver():
         last_traffic = "Just now"
     elif _last_traffic_timestamp is not None:
         minutes = (stats_now - _last_traffic_timestamp) / 60
+        if minutes < 0:
+            minutes = 0
         last_traffic = format_minutes_ago(minutes) or "Just now"
     else:
         last_traffic = "No traffic"
@@ -452,11 +535,13 @@ def read_index():
 
 @router.get("/api/panel")
 def get_panel():
-    services = {
-        "readsb": get_service_status("readsb"),
-        "tar1090": get_service_status("tar1090"),
-        "graphs1090": get_service_status("graphs1090")
-    }
+    config = load_config()
+    decoder_name = get_decoder_name()
+
+    services = {decoder_name: get_service_status(decoder_name)}
+    for name in config.get("monitored_services", []):
+        if name not in services:
+            services[name] = get_service_status(name)
 
     return {
         "system": {
@@ -465,9 +550,13 @@ def get_panel():
             "ram_usage": psutil.virtual_memory().percent
         },
         "service": {
-            "readsb_active": services["readsb"] == "running"
+            "name": decoder_name,
+            "active": services[decoder_name] == "running"
         },
         "services": services,
+        "links": {
+            "tar1090": config.get("tar1090_base_url", "/tar1090/")
+        },
         "receiver": parse_receiver(),
         "aircraft": parse_aircraft()
     }
@@ -478,9 +567,11 @@ def control_service(action: str):
     if action not in ["start", "stop", "restart"]:
         raise HTTPException(status_code=400, detail="Invalid action")
 
+    target = get_decoder_name()
+
     try:
         subprocess.run(
-            ["sudo", "systemctl", action, "readsb"],
+            ["sudo", "systemctl", action, target],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE

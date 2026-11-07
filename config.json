@@ -1,0 +1,46 @@
+{
+    "runtime_dirs": [
+        "/run/readsb",
+        "/run/dump1090-fa"
+    ],
+    "decoder_service": "auto",
+    "decoder_candidates": [
+        "readsb",
+        "dump1090-fa"
+    ],
+    "monitored_services": [
+        "tar1090",
+        "graphs1090"
+    ],
+    "service_probe_urls": {
+        "tar1090": "http://127.0.0.1/tar1090/",
+        "graphs1090": "http://127.0.0.1/graphs1090/"
+    },
+    "tar1090_base_url": "/tar1090/",
+    "service_status_ttl": 15,
+    "rtlsdr_cache_ttl": 10,
+    "usb_devices_dir": "/sys/bus/usb/devices",
+    "thermal_zone_path": "/sys/class/thermal/thermal_zone0/temp",
+    "rtlsdr_usb_ids": [
+        "0bda:2838",
+        "0bda:2832",
+        "0ccd:00d3",
+        "0ccd:00e0",
+        "0458:707f",
+        "1554:5020",
+        "1554:5021",
+        "1b80:d393",
+        "1b80:d394",
+        "1b80:d395",
+        "1b80:d397",
+        "1b80:d398",
+        "1b80:d39d",
+        "1b80:d3a4",
+        "1b80:d803",
+        "1d19:1101",
+        "1d19:1102",
+        "1d19:1103",
+        "1f4d:b803",
+        "1f4d:c803"
+    ]
+}

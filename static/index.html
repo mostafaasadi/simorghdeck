@@ -48,7 +48,7 @@
             <div class="service-info">
                 <span class="status-dot" id="serviceDot"></span>
                 <div>
-                    <h2>Readsb Service</h2>
+                    <h2 id="decoderServiceTitle">Readsb Service</h2>
                     <span class="badge inactive" id="serviceStatus">Checking</span>
                 </div>
             </div>
@@ -142,7 +142,7 @@
                     <button class="info-tip" type="button" aria-label="Uptime information">
                         <i data-lucide="info"></i>
                         <span class="info-fallback">?</span>
-                        <span class="tip" role="tooltip">Time readsb has been running continuously.</span>
+                        <span class="tip" role="tooltip">Time the decoder service has been running continuously.</span>
                     </button>
                 </span>
                 <strong id="uptime">N/A</strong>
@@ -305,14 +305,14 @@
 
                 <div class="stat">
                     <span class="stat-label">
-                        <span>readsb</span>
-                        <button class="info-tip" type="button" aria-label="readsb service status information">
+                        <span id="svcDecoderName">readsb</span>
+                        <button class="info-tip" type="button" aria-label="Decoder service status information">
                             <i data-lucide="info"></i>
                             <span class="info-fallback">?</span>
-                            <span class="tip" role="tooltip">Systemd service status for the readsb decoder.</span>
+                            <span class="tip" role="tooltip">Systemd service status for the ADS-B decoder.</span>
                         </button>
                     </span>
-                    <strong id="svcReadsb">Unknown</strong>
+                    <strong id="svcDecoderStatus">Unknown</strong>
                 </div>
 
                 <div class="stat">

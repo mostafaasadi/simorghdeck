@@ -15,6 +15,7 @@ const MAX_AIRCRAFT_POINTS = 30;
 const SPARK_GLYPHS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
 
 const TAR1090_BASE_URL = '/tar1090/';
+let tar1090BaseUrl = TAR1090_BASE_URL;
 
 const EXTERNAL_LINK_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="link-icon"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
 
@@ -42,9 +43,13 @@ async function refresh() {
 
         const data = await response.json();
 
+        if (data.links && data.links.tar1090) {
+            tar1090BaseUrl = data.links.tar1090;
+        }
+
         renderSystem(data.system);
         renderService(data.service);
-        renderServices(data.services);
+        renderServices(data.services, data.service ? data.service.name : null);
         renderRtlSdr(data.receiver ? data.receiver.rtl_sdr : null);
         renderReceiver(data.receiver, data.aircraft);
         renderAircraft(data.aircraft || {});
@@ -289,7 +294,12 @@ function renderService(service) {
         return;
     }
 
-    const active = Boolean(service.readsb_active);
+    const title = document.getElementById('decoderServiceTitle');
+    if (title && service.name) {
+        title.textContent = service.name.charAt(0).toUpperCase() + service.name.slice(1) + ' Service';
+    }
+
+    const active = Boolean(service.active);
     const badge = document.getElementById('serviceStatus');
     const dot = document.getElementById('serviceDot');
 
@@ -303,12 +313,19 @@ function renderService(service) {
     }
 }
 
-function renderServices(services) {
+function renderServices(services, decoderName) {
     if (!services) {
         return;
     }
 
-    setServiceStatus('svcReadsb', services.readsb);
+    if (decoderName) {
+        const nameEl = document.getElementById('svcDecoderName');
+        if (nameEl) {
+            nameEl.textContent = decoderName;
+        }
+        setServiceStatus('svcDecoderStatus', services[decoderName]);
+    }
+
     setServiceStatus('svcTar1090', services.tar1090);
     setServiceStatus('svcGraphs1090', services.graphs1090);
 }
@@ -459,7 +476,7 @@ function tar1090IcaoUrl(value) {
     if (!isValidIcaoHex(value)) {
         return null;
     }
-    return TAR1090_BASE_URL + '?icao=' + value.toLowerCase();
+    return tar1090BaseUrl + '?icao=' + value.toLowerCase();
 }
 
 function aircraftCard(ac) {
