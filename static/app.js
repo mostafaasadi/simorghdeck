@@ -12,10 +12,10 @@ const MAX_AIRCRAFT_POINTS = 30;
 const SPARK_GLYPHS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
 const TAR1090_BASE_URL = '/tar1090/';
 let tar1090BaseUrl = TAR1090_BASE_URL;
-const EXTERNAL_LINK_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="link-icon"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>';
-const RESTART_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>';
-const STOP_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect></svg>';
-const INFO_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>';
+const INFO_ICON = '<svg class="icon"><use href="#i-info"></use></svg>';
+const EXTERNAL_LINK_ICON = '<svg class="icon link-icon"><use href="#i-external"></use></svg>';
+const RESTART_ICON = '<svg class="icon"><use href="#i-restart"></use></svg>';
+const STOP_ICON = '<svg class="icon"><use href="#i-stop"></use></svg>';
 const renderedActions = {};
 
 document.addEventListener('DOMContentLoaded', () => {

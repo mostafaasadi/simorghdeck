@@ -8,6 +8,26 @@
     <link rel="stylesheet" href="/deck/static/style.css">
 </head>
 <body>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none" aria-hidden="true">
+        <symbol id="i-info" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 16v-4"></path>
+            <path d="M12 8h.01"></path>
+        </symbol>
+        <symbol id="i-external" viewBox="0 0 24 24">
+            <path d="M15 3h6v6"></path>
+            <path d="M10 14 21 3"></path>
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+        </symbol>
+        <symbol id="i-restart" viewBox="0 0 24 24">
+            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+            <path d="M21 3v5h-5"></path>
+        </symbol>
+        <symbol id="i-stop" viewBox="0 0 24 24">
+            <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+        </symbol>
+    </svg>
+
     <main class="container">
         <header class="card header">
             <div class="header-title">
@@ -49,9 +69,8 @@
                 <span class="metric-label">
                     <i data-lucide="plane"></i>
                     <span>Active</span>
-                    <button class="info-tip" type="button" aria-label="Active aircraft information">
-                        <i data-lucide="info"></i>
-                        <span class="info-fallback">?</span>
+                    <button class="info-tip" type="button" aria-label="Info">
+                        <svg class="icon"><use href="#i-info"></use></svg>
                         <span class="tip" role="tooltip">Aircraft seen within the last 60 seconds.</span>
                     </button>
                 </span>
@@ -62,9 +81,8 @@
                 <span class="metric-label">
                     <i data-lucide="signal"></i>
                     <span>SNR 5m</span>
-                    <button class="info-tip" type="button" aria-label="SNR information">
-                        <i data-lucide="info"></i>
-                        <span class="info-fallback">?</span>
+                    <button class="info-tip" type="button" aria-label="Info">
+                        <svg class="icon"><use href="#i-info"></use></svg>
                         <span class="tip" role="tooltip">Signal-to-Noise Ratio averaged over the last 5 minutes.</span>
                     </button>
                 </span>
@@ -75,9 +93,8 @@
                 <span class="metric-label">
                     <i data-lucide="radio"></i>
                     <span>Gain</span>
-                    <button class="info-tip" type="button" aria-label="Gain information">
-                        <i data-lucide="info"></i>
-                        <span class="info-fallback">?</span>
+                    <button class="info-tip" type="button" aria-label="Info">
+                        <svg class="icon"><use href="#i-info"></use></svg>
                         <span class="tip" role="tooltip">Receiver gain in dB.</span>
                     </button>
                 </span>
@@ -88,9 +105,8 @@
                 <span class="metric-label">
                     <i data-lucide="gauge"></i>
                     <span>PPM</span>
-                    <button class="info-tip" type="button" aria-label="PPM information">
-                        <i data-lucide="info"></i>
-                        <span class="info-fallback">?</span>
+                    <button class="info-tip" type="button" aria-label="Info">
+                        <svg class="icon"><use href="#i-info"></use></svg>
                         <span class="tip" role="tooltip">Estimated receiver frequency error in PPM.</span>
                     </button>
                 </span>
@@ -101,9 +117,8 @@
                 <span class="metric-label">
                     <i data-lucide="activity"></i>
                     <span>Last Traffic</span>
-                    <button class="info-tip" type="button" aria-label="Last traffic information">
-                        <i data-lucide="info"></i>
-                        <span class="info-fallback">?</span>
+                    <button class="info-tip" type="button" aria-label="Info">
+                        <svg class="icon"><use href="#i-info"></use></svg>
                         <span class="tip" role="tooltip">When an aircraft was last seen.</span>
                     </button>
                 </span>
@@ -114,9 +129,8 @@
                 <span class="metric-label">
                     <i data-lucide="clock"></i>
                     <span>Uptime</span>
-                    <button class="info-tip" type="button" aria-label="Uptime information">
-                        <i data-lucide="info"></i>
-                        <span class="info-fallback">?</span>
+                    <button class="info-tip" type="button" aria-label="Info">
+                        <svg class="icon"><use href="#i-info"></use></svg>
                         <span class="tip" role="tooltip">Time the decoder service has been running continuously.</span>
                     </button>
                 </span>
@@ -147,9 +161,8 @@
                 <div class="stat">
                     <span class="stat-label">
                         <span>Messages / h</span>
-                        <button class="info-tip" type="button" aria-label="Messages per hour information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
+                        <button class="info-tip" type="button" aria-label="Info">
+                            <svg class="icon"><use href="#i-info"></use></svg>
                             <span class="tip" role="tooltip">Average messages per hour.</span>
                         </button>
                     </span>
@@ -159,9 +172,8 @@
                 <div class="stat">
                     <span class="stat-label">
                         <span>Positions / h</span>
-                        <button class="info-tip" type="button" aria-label="Positions per hour information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
+                        <button class="info-tip" type="button" aria-label="Info">
+                            <svg class="icon"><use href="#i-info"></use></svg>
                             <span class="tip" role="tooltip">Average positions per hour.</span>
                         </button>
                     </span>
@@ -171,9 +183,8 @@
                 <div class="stat">
                     <span class="stat-label">
                         <span>Position Yield</span>
-                        <button class="info-tip" type="button" aria-label="Position yield information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
+                        <button class="info-tip" type="button" aria-label="Info">
+                            <svg class="icon"><use href="#i-info"></use></svg>
                             <span class="tip" role="tooltip">Percentage of messages that produced positions.</span>
                         </button>
                     </span>
@@ -183,9 +194,8 @@
                 <div class="stat">
                     <span class="stat-label">
                         <span>Multi-msg Tracks</span>
-                        <button class="info-tip" type="button" aria-label="Multi-message tracks information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
+                        <button class="info-tip" type="button" aria-label="Info">
+                            <svg class="icon"><use href="#i-info"></use></svg>
                             <span class="tip" role="tooltip">Tracks with more than one message.</span>
                         </button>
                     </span>
@@ -195,9 +205,8 @@
                 <div class="stat">
                     <span class="stat-label">
                         <span>Track Completion</span>
-                        <button class="info-tip" type="button" aria-label="Track completion information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
+                        <button class="info-tip" type="button" aria-label="Info">
+                            <svg class="icon"><use href="#i-info"></use></svg>
                             <span class="tip" role="tooltip">Percentage of tracks with multiple messages.</span>
                         </button>
                     </span>
@@ -207,9 +216,8 @@
                 <div class="stat">
                     <span class="stat-label">
                         <span>Max Range</span>
-                        <button class="info-tip" type="button" aria-label="Max range information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
+                        <button class="info-tip" type="button" aria-label="Info">
+                            <svg class="icon"><use href="#i-info"></use></svg>
                             <span class="tip" role="tooltip">Maximum distance to an aircraft heard.</span>
                         </button>
                     </span>
@@ -225,26 +233,25 @@
                     <h2>Receiver Health</h2>
                 </div>
             </div>
+
             <div class="stats-grid health-grid">
                 <div class="stat">
                     <span class="stat-label">
                         <span>RTL-SDR</span>
-                        <button class="info-tip" type="button" aria-label="RTL-SDR connection information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
+                        <button class="info-tip" type="button" aria-label="Info">
+                            <svg class="icon"><use href="#i-info"></use></svg>
                             <span class="tip" role="tooltip">RTL-SDR dongle detection on the USB bus.</span>
                         </button>
                     </span>
                     <strong id="rtlSdrStatus">Unknown</strong>
-                    <span class="aircraft-meta hidden" id="rtlSdrId"></span>
+                    <span class="hex hidden" id="rtlSdrId"></span>
                 </div>
 
                 <div class="stat">
                     <span class="stat-label">
                         <span>CPU</span>
-                        <button class="info-tip" type="button" aria-label="CPU information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
+                        <button class="info-tip" type="button" aria-label="Info">
+                            <svg class="icon"><use href="#i-info"></use></svg>
                             <span class="tip" role="tooltip">Processor load.</span>
                         </button>
                     </span>
@@ -255,9 +262,8 @@
                 <div class="stat">
                     <span class="stat-label">
                         <span>Temp</span>
-                        <button class="info-tip" type="button" aria-label="Temperature information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
+                        <button class="info-tip" type="button" aria-label="Info">
+                            <svg class="icon"><use href="#i-info"></use></svg>
                             <span class="tip" role="tooltip">CPU temperature.</span>
                         </button>
                     </span>
@@ -268,9 +274,8 @@
                 <div class="stat">
                     <span class="stat-label">
                         <span>RAM</span>
-                        <button class="info-tip" type="button" aria-label="RAM information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
+                        <button class="info-tip" type="button" aria-label="Info">
+                            <svg class="icon"><use href="#i-info"></use></svg>
                             <span class="tip" role="tooltip">Memory usage.</span>
                         </button>
                     </span>
@@ -287,16 +292,16 @@
                     <h2>Services</h2>
                 </div>
             </div>
+
             <div class="services-grid">
                 <div class="stat">
                     <span class="stat-label">
                         <span class="label-group">
                             <span class="status-dot" id="serviceDot"></span>
-                            <span id="svcDecoderName">readsb</span>
+                            <span id="svcDecoderName">Decoder</span>
                         </span>
-                        <button class="info-tip" type="button" aria-label="Decoder service status information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
+                        <button class="info-tip" type="button" aria-label="Info">
+                            <svg class="icon"><use href="#i-info"></use></svg>
                             <span class="tip" role="tooltip">Systemd service status for the ADS-B decoder. Restart and Stop buttons control this service.</span>
                         </button>
                     </span>
@@ -309,9 +314,8 @@
                 <div class="stat">
                     <span class="stat-label">
                         <span>tar1090</span>
-                        <button class="info-tip" type="button" aria-label="tar1090 service status information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
+                        <button class="info-tip" type="button" aria-label="Info">
+                            <svg class="icon"><use href="#i-info"></use></svg>
                             <span class="tip" role="tooltip">Systemd service status for tar1090 (JSON history compressor). Restart and Stop buttons control this service.</span>
                         </button>
                     </span>
@@ -324,9 +328,8 @@
                 <div class="stat">
                     <span class="stat-label">
                         <span>graphs1090</span>
-                        <button class="info-tip" type="button" aria-label="graphs1090 service status information">
-                            <i data-lucide="info"></i>
-                            <span class="info-fallback">?</span>
+                        <button class="info-tip" type="button" aria-label="Info">
+                            <svg class="icon"><use href="#i-info"></use></svg>
                             <span class="tip" role="tooltip">Systemd service status for graphs1090. Restart and Stop buttons control this service.</span>
                         </button>
                     </span>

@@ -39,6 +39,14 @@ body {
 .text-warning { color: #fbbf24; }
 .text-danger { color: #f87171; }
 
+.icon {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
 .header {
     display: flex;
     flex-direction: column;
