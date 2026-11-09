@@ -3,26 +3,19 @@ let snrPoints = [];
 const MAX_POINTS = 900;
 let lastStatsNow = null;
 let activeInfoTip = null;
-
 let cpuPoints = [];
 let tempPoints = [];
 let ramPoints = [];
 const MAX_SYSTEM_POINTS = 30;
-
 const aircraftHistory = new Map();
 const MAX_AIRCRAFT_POINTS = 30;
-
 const SPARK_GLYPHS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
-
 const TAR1090_BASE_URL = '/tar1090/';
 let tar1090BaseUrl = TAR1090_BASE_URL;
-
-const EXTERNAL_LINK_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="link-icon"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
-
-const RESTART_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>';
-
-const STOP_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
-
+const EXTERNAL_LINK_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="link-icon"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>';
+const RESTART_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>';
+const STOP_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect></svg>';
+const INFO_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>';
 const renderedActions = {};
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -338,7 +331,6 @@ function renderServiceEntry(name, entry, statusId, actionsId) {
 
 function renderServiceActions(containerId, serviceName) {
     const el = document.getElementById(containerId);
-
     if (!el) {
         return;
     }
@@ -355,7 +347,6 @@ function renderServiceActions(containerId, serviceName) {
 
 function serviceActionsHtml(name) {
     const safeName = escapeHtml(name);
-
     return `
         <button class="btn btn-warning btn-sm" data-service-name="${safeName}" data-service-action="restart">
             ${RESTART_ICON}
@@ -497,13 +488,7 @@ function renderAircraft(aircraft) {
 }
 
 function infoTip(tooltipText) {
-    return `
-        <button class="info-tip data-tip" type="button" aria-label="Info">
-            <i data-lucide="info"></i>
-            <span class="info-fallback">?</span>
-            <span class="tip" role="tooltip">${escapeHtml(tooltipText)}</span>
-        </button>
-    `;
+    return `<button class="info-tip" type="button" aria-label="Info">${INFO_ICON}<span class="tip" role="tooltip">${escapeHtml(tooltipText)}</span></button>`;
 }
 
 function isValidIcaoHex(value) {
@@ -521,6 +506,7 @@ function aircraftCard(ac) {
     const title = ac.flight || ac.hex || 'UNKNOWN';
     const hex = ac.hex;
     const icaoUrl = tar1090IcaoUrl(hex);
+
     const positionBadge = ac.has_position
         ? '<span class="badge info">POS</span>'
         : '<span class="badge muted">NO POS</span>';
