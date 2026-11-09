@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import threading
 import subprocess
 import urllib.request
 import urllib.error
@@ -26,6 +27,7 @@ DEFAULT_CONFIG = {
     "tar1090_base_url": "/tar1090/",
     "service_status_ttl": 15,
     "rtlsdr_cache_ttl": 10,
+    "traffic_watch_interval": 20,
     "usb_devices_dir": "/sys/bus/usb/devices",
     "thermal_zone_path": "/sys/class/thermal/thermal_zone0/temp",
     "rtlsdr_usb_ids": [
@@ -53,7 +55,6 @@ DEFAULT_CONFIG = {
 }
 
 app = FastAPI(title="SimorghDeck API")
-
 router = APIRouter(prefix="/deck")
 
 os.makedirs(STATIC_DIR, exist_ok=True)
@@ -72,7 +73,6 @@ _rtlsdr_cache = {
     "usb_id": None,
     "scan_ok": False
 }
-
 _last_traffic_timestamp = None
 
 psutil.cpu_percent(interval=None)
@@ -84,7 +84,6 @@ def load_config():
         return _config
 
     merged = dict(DEFAULT_CONFIG)
-
     try:
         with open(CONFIG_PATH, "r") as handle:
             user = json.load(handle)
@@ -213,7 +212,6 @@ def unit_exists(name):
 
     state = systemd_unit_state(name)
     exists = state is not None and state != "unknown"
-
     _unit_cache[name] = (now, exists)
     return exists
 
@@ -291,7 +289,6 @@ def probe_http(url):
 
 def probe_service(name):
     state = systemd_unit_state(name)
-
     if state is None:
         return "unknown"
     if state == "active":
@@ -327,6 +324,53 @@ def get_service_status(name):
     return status
 
 
+def format_minutes_ago(minutes):
+    if minutes is None:
+        return None
+    minutes = int(round(minutes))
+    if minutes < 1:
+        return "Just now"
+    if minutes < 60:
+        return f"{minutes} min ago"
+    hours = minutes // 60
+    mins = minutes % 60
+    if mins > 0:
+        return f"{hours}h {mins}m ago"
+    return f"{hours}h ago"
+
+
+def refresh_last_traffic():
+    global _last_traffic_timestamp
+
+    stats = load_runtime_json("stats.json")
+    status = load_runtime_json("status.json")
+    last1 = stats.get("last1min", {}) if isinstance(stats.get("last1min"), dict) else {}
+
+    stats_now = to_number(stats.get("now"), to_number(status.get("now"), 0))
+    if not stats_now:
+        return
+
+    positions_1m = to_int(last1.get("position_count_total"), 0)
+    current_aircraft = to_int(status.get("aircraft_with_pos"), 0) + to_int(status.get("aircraft_without_pos"), 0)
+
+    if current_aircraft > 0 or positions_1m > 0:
+        if _last_traffic_timestamp is None or stats_now > _last_traffic_timestamp:
+            _last_traffic_timestamp = stats_now
+
+
+def watch_last_traffic():
+    interval = load_config().get("traffic_watch_interval", 20)
+    while True:
+        try:
+            refresh_last_traffic()
+        except Exception:
+            pass
+        time.sleep(interval)
+
+
+threading.Thread(target=watch_last_traffic, daemon=True).start()
+
+
 def parse_aircraft():
     data = load_runtime_json("aircraft.json")
     raw_items = data.get("aircraft", [])
@@ -345,6 +389,8 @@ def parse_aircraft():
 
         hex_code = str(raw.get("hex") or "").strip().upper()
         flight = str(raw.get("flight") or "").strip()
+        if flight.replace("@", "").strip() == "":
+            flight = ""
         registration = str(raw.get("r") or "").strip()
         aircraft_type = str(raw.get("t") or "").strip()
 
@@ -395,6 +441,7 @@ def parse_aircraft():
         })
 
     items.sort(key=lambda item: item["hex"])
+
     with_pos = sum(1 for item in items if item["has_position"])
 
     return {
@@ -405,22 +452,17 @@ def parse_aircraft():
 
 
 def parse_receiver():
-    global _last_traffic_timestamp
-
     stats = load_runtime_json("stats.json")
     status = load_runtime_json("status.json")
 
     last1 = stats.get("last1min", {}) if isinstance(stats.get("last1min"), dict) else {}
     last5 = stats.get("last5min", {}) if isinstance(stats.get("last5min"), dict) else {}
-    last15 = stats.get("last15min", {}) if isinstance(stats.get("last15min"), dict) else {}
     total = stats.get("total", {}) if isinstance(stats.get("total"), dict) else {}
     local_total = total.get("local", {}) if isinstance(total.get("local"), dict) else {}
     tracks_total = total.get("tracks", {}) if isinstance(total.get("tracks"), dict) else {}
-
     local_5 = last5.get("local", {}) if isinstance(last5.get("local"), dict) else {}
 
     usb_id, scan_ok = find_rtlsdr_usb()
-
     if usb_id:
         rtl_status = "connected"
     elif scan_ok:
@@ -474,26 +516,10 @@ def parse_receiver():
 
     stats_now = to_number(stats.get("now"), to_number(status.get("now"), 0))
     positions_1m = to_int(last1.get("position_count_total"), 0)
-    current_aircraft = with_pos + without_pos
 
-    def format_minutes_ago(minutes):
-        if minutes is None:
-            return None
-        minutes = int(round(minutes))
-        if minutes < 1:
-            return "Just now"
-        if minutes < 60:
-            return f"{minutes} min ago"
-        hours = minutes // 60
-        mins = minutes % 60
-        if mins > 0:
-            return f"{hours}h {mins}m ago"
-        return f"{hours}h ago"
+    refresh_last_traffic()
 
-    if current_aircraft > 0 or positions_1m > 0:
-        _last_traffic_timestamp = stats_now
-        last_traffic = "Just now"
-    elif _last_traffic_timestamp is not None:
+    if _last_traffic_timestamp is not None and stats_now:
         minutes = (stats_now - _last_traffic_timestamp) / 60
         if minutes < 0:
             minutes = 0
