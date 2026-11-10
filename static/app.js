@@ -722,7 +722,7 @@ function headingValue(value) {
 
     return `
         <span class="heading">
-            <span class="heading-arrow" style="transform: rotate(${deg}deg)">➤</span>
+            <span class="heading-arrow" style="transform: rotate(${deg - 90}deg)">➤</span>
             ${deg}°
         </span>
     `;
