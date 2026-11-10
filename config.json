@@ -9,6 +9,8 @@
         "graphs1090": "http://127.0.0.1/graphs1090/"
     },
     "tar1090_base_url": "/tar1090/",
+    "receiver_lat": 31.324214,
+    "receiver_lon": 48.655905,
     "service_status_ttl": 15,
     "rtlsdr_cache_ttl": 10,
     "usb_devices_dir": "/sys/bus/usb/devices",

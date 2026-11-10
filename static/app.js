@@ -238,7 +238,8 @@ function updateAircraftHistory(hex, ac) {
             alt: [],
             spd: [],
             vert: [],
-            rssi: []
+            rssi: [],
+            dist: []
         });
     }
 
@@ -248,11 +249,13 @@ function updateAircraftHistory(hex, ac) {
     h.spd.push(isNumber(ac.speed_kmh) ? ac.speed_kmh : null);
     h.vert.push(isNumber(ac.vertical_mps) ? ac.vertical_mps : null);
     h.rssi.push(isNumber(ac.rssi_db) ? ac.rssi_db : null);
+    h.dist.push(isNumber(ac.distance_km) ? ac.distance_km : null);
 
     if (h.alt.length > MAX_AIRCRAFT_POINTS) h.alt.shift();
     if (h.spd.length > MAX_AIRCRAFT_POINTS) h.spd.shift();
     if (h.vert.length > MAX_AIRCRAFT_POINTS) h.vert.shift();
     if (h.rssi.length > MAX_AIRCRAFT_POINTS) h.rssi.shift();
+    if (h.dist.length > MAX_AIRCRAFT_POINTS) h.dist.shift();
 }
 
 function cleanupAircraftHistory(activeHexes) {
@@ -517,7 +520,7 @@ function aircraftCard(ac) {
 
     const cardClass = ac.emergency ? 'aircraft-card emergency' : (ac.on_ground ? 'aircraft-card on-ground' : 'aircraft-card');
 
-    const history = aircraftHistory.get(hex) || { alt: [], spd: [], vert: [], rssi: [] };
+    const history = aircraftHistory.get(hex) || { alt: [], spd: [], vert: [], rssi: [], dist: [] };
 
     const metaParts = [];
     if (ac.registration) {
@@ -571,14 +574,6 @@ function aircraftCard(ac) {
                     ${sparklineBarsHtml(history.spd, '#10b981')}
                 </div>
 
-                <div class="data">
-                    <span class="data-head">
-                        <span>HDG</span>
-                        ${infoTip('True track over ground in degrees (0-359).')}
-                    </span>
-                    <span class="value">${headingValue(ac.track_deg)}</span>
-                </div>
-
                 <div class="data has-bars">
                     <span class="data-head">
                         <span>VERT</span>
@@ -597,16 +592,72 @@ function aircraftCard(ac) {
                     ${sparklineBarsHtml(history.rssi, '#a78bfa')}
                 </div>
 
-                <div class="data">
-                    <span class="data-head">
-                        <span>SEEN</span>
-                        ${infoTip('Seconds since the last message was received from this aircraft.')}
-                    </span>
-                    <span class="value ${seenClass(ac.seen_s)}">${seenValue(ac.seen_s)}</span>
+                <div class="data-stack">
+                    <div class="data compact">
+                        <span class="data-head">
+                            <span>HDG</span>
+                            ${infoTip('True track over ground in degrees (0-359).')}
+                        </span>
+                        <span class="value">${headingValue(ac.track_deg)}</span>
+                    </div>
+
+                    <div class="data compact">
+                        <span class="data-head">
+                            <span>SEEN</span>
+                            ${infoTip('Seconds since the last message was received from this aircraft.')}
+                        </span>
+                        <span class="value ${seenClass(ac.seen_s)}">${seenValue(ac.seen_s)}</span>
+                    </div>
+
+                    <div class="data compact">
+                        <span class="data-head">
+                            <span>DIST</span>
+                            ${infoTip('Distance from your receiver site in kilometers. Arrow shows the approaching or receding trend.')}
+                        </span>
+                        <span class="value">${distanceDisplay(ac.distance_km, history.dist)}</span>
+                    </div>
                 </div>
             </div>
         </article>
     `;
+}
+
+function distanceTrendHtml(points) {
+    const windowPoints = points.slice(-8);
+    const valid = windowPoints.filter(point => isNumber(point));
+
+    if (valid.length < 2) {
+        return '';
+    }
+
+    const delta = valid[valid.length - 1] - valid[0];
+
+    if (Math.abs(delta) < 0.5) {
+        return '<span class="heading-arrow trend-stable">➤</span>';
+    }
+
+    const rotate = delta < 0 ? 90 : -90;
+    return `<span class="heading-arrow" style="transform: rotate(${rotate}deg)">➤</span>`;
+}
+
+function distanceDisplay(value, points) {
+    if (!isNumber(value)) {
+        return 'N/A';
+    }
+
+    return `<span class="heading">${distanceTrendHtml(points)}<span>${distanceValue(value)}</span></span>`;
+}
+
+function distanceValue(value) {
+    if (!isNumber(value)) {
+        return 'N/A';
+    }
+
+    if (value < 10) {
+        return `${value.toFixed(1)} km`;
+    }
+
+    return `${Math.round(value).toLocaleString()} km`;
 }
 
 function rssiClass(value) {

@@ -1,11 +1,11 @@
 import os
 import json
 import time
-import threading
 import subprocess
 import urllib.request
 import urllib.error
 import psutil
+from math import radians, sin, cos, asin, sqrt
 from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -27,9 +27,10 @@ DEFAULT_CONFIG = {
     "tar1090_base_url": "/tar1090/",
     "service_status_ttl": 15,
     "rtlsdr_cache_ttl": 10,
-    "traffic_watch_interval": 20,
     "usb_devices_dir": "/sys/bus/usb/devices",
     "thermal_zone_path": "/sys/class/thermal/thermal_zone0/temp",
+    "receiver_lat": None,
+    "receiver_lon": None,
     "rtlsdr_usb_ids": [
         "0bda:2838",
         "0bda:2832",
@@ -241,6 +242,27 @@ def get_decoder_name():
     return get_decoder_service() or load_config().get("decoder_candidates", ["readsb"])[0]
 
 
+def get_receiver_position():
+    config = load_config()
+    lat = to_number(config.get("receiver_lat"))
+    lon = to_number(config.get("receiver_lon"))
+    if lat is None or lon is None:
+        return None, None
+    return lat, lon
+
+
+def distance_from_receiver_km(lat, lon):
+    if lat is None or lon is None:
+        return None
+    rlat, rlon = get_receiver_position()
+    if rlat is None or rlon is None:
+        return None
+    dlat = radians(lat - rlat)
+    dlon = radians(lon - rlon)
+    a = sin(dlat / 2) ** 2 + cos(radians(rlat)) * cos(radians(lat)) * sin(dlon / 2) ** 2
+    return round(6371.0 * 2 * asin(sqrt(a)), 1)
+
+
 def find_rtlsdr_usb():
     ttl = load_config().get("rtlsdr_cache_ttl", 10)
     now = time.monotonic()
@@ -324,53 +346,6 @@ def get_service_status(name):
     return status
 
 
-def format_minutes_ago(minutes):
-    if minutes is None:
-        return None
-    minutes = int(round(minutes))
-    if minutes < 1:
-        return "Just now"
-    if minutes < 60:
-        return f"{minutes} min ago"
-    hours = minutes // 60
-    mins = minutes % 60
-    if mins > 0:
-        return f"{hours}h {mins}m ago"
-    return f"{hours}h ago"
-
-
-def refresh_last_traffic():
-    global _last_traffic_timestamp
-
-    stats = load_runtime_json("stats.json")
-    status = load_runtime_json("status.json")
-    last1 = stats.get("last1min", {}) if isinstance(stats.get("last1min"), dict) else {}
-
-    stats_now = to_number(stats.get("now"), to_number(status.get("now"), 0))
-    if not stats_now:
-        return
-
-    positions_1m = to_int(last1.get("position_count_total"), 0)
-    current_aircraft = to_int(status.get("aircraft_with_pos"), 0) + to_int(status.get("aircraft_without_pos"), 0)
-
-    if current_aircraft > 0 or positions_1m > 0:
-        if _last_traffic_timestamp is None or stats_now > _last_traffic_timestamp:
-            _last_traffic_timestamp = stats_now
-
-
-def watch_last_traffic():
-    interval = load_config().get("traffic_watch_interval", 20)
-    while True:
-        try:
-            refresh_last_traffic()
-        except Exception:
-            pass
-        time.sleep(interval)
-
-
-threading.Thread(target=watch_last_traffic, daemon=True).start()
-
-
 def parse_aircraft():
     data = load_runtime_json("aircraft.json")
     raw_items = data.get("aircraft", [])
@@ -422,6 +397,7 @@ def parse_aircraft():
 
         lat = to_number(raw.get("lat"))
         lon = to_number(raw.get("lon"))
+        distance_km = distance_from_receiver_km(lat, lon)
 
         items.append({
             "hex": hex_code,
@@ -436,6 +412,7 @@ def parse_aircraft():
             "rssi_db": rssi_db,
             "seen_s": round(seen, 1),
             "squawk": squawk,
+            "distance_km": distance_km,
             "has_position": lat is not None and lon is not None,
             "emergency": squawk in {"7500", "7600", "7700"}
         })
@@ -452,6 +429,8 @@ def parse_aircraft():
 
 
 def parse_receiver():
+    global _last_traffic_timestamp
+
     stats = load_runtime_json("stats.json")
     status = load_runtime_json("status.json")
 
@@ -516,10 +495,26 @@ def parse_receiver():
 
     stats_now = to_number(stats.get("now"), to_number(status.get("now"), 0))
     positions_1m = to_int(last1.get("position_count_total"), 0)
+    current_aircraft = with_pos + without_pos
 
-    refresh_last_traffic()
+    def format_minutes_ago(minutes):
+        if minutes is None:
+            return None
+        minutes = int(round(minutes))
+        if minutes < 1:
+            return "Just now"
+        if minutes < 60:
+            return f"{minutes} min ago"
+        hours = minutes // 60
+        mins = minutes % 60
+        if mins > 0:
+            return f"{hours}h {mins}m ago"
+        return f"{hours}h ago"
 
-    if _last_traffic_timestamp is not None and stats_now:
+    if current_aircraft > 0 or positions_1m > 0:
+        _last_traffic_timestamp = stats_now
+        last_traffic = "Just now"
+    elif _last_traffic_timestamp is not None:
         minutes = (stats_now - _last_traffic_timestamp) / 60
         if minutes < 0:
             minutes = 0

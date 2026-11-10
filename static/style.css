@@ -383,6 +383,29 @@ body {
     min-height: 96px;
 }
 
+.data.compact {
+    min-height: 0;
+    padding: 8px 10px;
+    gap: 4px;
+    justify-content: center;
+}
+
+.data.compact .value {
+    font-size: 15px;
+}
+
+.data-stack {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    grid-column: 1 / -1;
+}
+
+.data-stack .data {
+    flex: 1;
+    min-height: 0;
+}
+
 .data-head {
     display: flex;
     align-items: center;
@@ -426,6 +449,10 @@ body {
 .heading-arrow {
     display: inline-block;
     color: #38bdf8;
+}
+
+.trend-stable {
+    opacity: 0.35;
 }
 
 .sparkline-bars {
@@ -617,6 +644,12 @@ body {
 @media (min-width: 560px) {
     .aircraft-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .data-stack {
+        flex-direction: column;
+        grid-column: 3;
+        grid-row: 1 / 3;
     }
 }
 
