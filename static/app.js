@@ -10,6 +10,7 @@ const MAX_SYSTEM_POINTS = 30;
 const aircraftHistory = new Map();
 const MAX_AIRCRAFT_POINTS = 30;
 const SPARK_GLYPHS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+const BASE_TITLE = 'SimorghDeck';
 const TAR1090_BASE_URL = '/tar1090/';
 let tar1090BaseUrl = TAR1090_BASE_URL;
 const INFO_ICON = '<svg class="icon"><use href="#i-info"></use></svg>';
@@ -468,6 +469,8 @@ function renderAircraft(aircraft) {
         activeCount.textContent = String(aircraft.active_count || 0);
     }
 
+    updatePageTitle(aircraft.active_count || 0);
+
     if (!list) {
         return;
     }
@@ -488,6 +491,13 @@ function renderAircraft(aircraft) {
     }
 
     list.innerHTML = items.map(item => aircraftCard(item)).join('');
+}
+
+function updatePageTitle(count) {
+    const next = count > 0 ? `(${count}) ${BASE_TITLE}` : BASE_TITLE;
+    if (document.title !== next) {
+        document.title = next;
+    }
 }
 
 function infoTip(tooltipText) {
